@@ -8,7 +8,7 @@ from .spotting import Inference as SpottingInference
 from .utils import replace_digits, replace_letters, replace_sex
 
 __all__ = [
-    'MRZScanner', 'ModelType', 'SpottingInference']
+    'MRZScanner', 'ModelType', 'SpottingInference', 'ErrorCodes']
 
 
 class ModelType(D.EnumCheckMixin, Enum):
@@ -127,9 +127,11 @@ class MRZScanner:
         if not D.is_numpy_img(img):
             return [''], ErrorCodes.INVALID_INPUT_FORMAT
         result = self.scanner(img=img, do_centercrop=do_centercrop)
+
+        msg = ErrorCodes.NO_ERROR
         if do_postprocess:
-            result = self.postprocess(result)
-        return result, ErrorCodes.NO_ERROR
+            result, msg = self.postprocess(result)
+        return result, msg
 
     def __repr__(self) -> str:
         return f'{self.scanner.__class__.__name__}({self.scanner.model})'
