@@ -50,7 +50,7 @@ class MRZScanner:
         self.scanner = None
         model_type = ModelType.obj_to_enum(model_type)
         if model_type == ModelType.spotting or model_type == ModelType.default:
-            model_cfg = '20240917' if model_cfg is None else model_cfg
+            model_cfg = '20240919' if model_cfg is None else model_cfg
             valid_model_cfgs = list(SpottingInference.configs.keys())
             if model_cfg not in valid_model_cfgs:
                 raise ValueError(
@@ -88,7 +88,7 @@ class MRZScanner:
             nationality = replace_digits(results[1][15:18])
             optional = results[1][18:30]
             results[1] = f'{birth_date}{sex}{expiry_date}{nationality}{optional}'
-            return results
+            return results, ErrorCodes.NO_ERROR
 
         elif doc_type == 2:  # TD2 or TD3
             if (len(results[0]) != 36 or len(results[1]) != 36) \
@@ -103,7 +103,7 @@ class MRZScanner:
             expiry_date = replace_letters(results[1][21:28])
             optional = results[1][28:]
             results[1] = f'{doc_number}{doc_number_hash}{nationality}{birth_date}{sex}{expiry_date}{optional}'
-            return results
+            return results, ErrorCodes.NO_ERROR
 
     def __call__(
         self,

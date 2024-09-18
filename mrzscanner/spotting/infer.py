@@ -12,9 +12,9 @@ __all__ = ['Inference']
 class Inference:
 
     configs = {
-        '20240917': {
-            'model_path': 'mobilenetv4_conv_small_bifpn1_l6_d256_p12345_finetune_20240917_fp32.onnx',
-            'file_id': 'y36PAzfaZE3tBNN',
+        '20240919': {
+            'model_path': 'mobilenetv4_conv_small_bifpn1_l6_d256_p12345_finetune_20240919_fp32.onnx',
+            'file_id': 'EpCRaBq6KxPaQNa',
             'img_size_infer': (512, 512),
         },
     }
@@ -23,7 +23,7 @@ class Inference:
         self,
         gpu_id: int = 0,
         backend: D.Backend = D.Backend.cpu,
-        model_cfg: str = '20240917',
+        model_cfg: str = '20240919',
         **kwargs
     ) -> None:
         self.root = DIR / 'ckpt'
