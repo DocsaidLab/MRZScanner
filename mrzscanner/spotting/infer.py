@@ -50,8 +50,8 @@ class Inference:
             decode_mode=D.DecodeMode.Normal
         )
 
-    def preprocess(self, img: np.ndarray, do_centercrop: bool) -> np.ndarray:
-        if do_centercrop:
+    def preprocess(self, img: np.ndarray, do_center_crop: bool) -> np.ndarray:
+        if do_center_crop:
             img = D.centercrop(img)
 
         # Padding
@@ -81,9 +81,9 @@ class Inference:
     def __call__(
         self,
         img: np.ndarray,
-        do_centercrop: bool = False
+        do_center_crop: bool = False
     ) -> List[str]:
-        data = self.preprocess(img, do_centercrop=do_centercrop)
+        data = self.preprocess(img, do_center_crop=do_center_crop)
         result = self.engine(data)
         result = self.text_dec(result)[0]
         result = result.split('&')

@@ -45,7 +45,7 @@ def test_mrz_scanner_call(mock_mrz_scanner):
 def test_postprocess_failed_td1_length(mock_mrz_scanner, monkeypatch):
     """測試 TD1 後處理時行數不符的錯誤處理。"""
     # 模擬 SpottingInference 返回一個無效的 TD1 格式
-    monkeypatch.setattr('mrzscanner.SpottingInference.__call__', lambda self, img, do_centercrop: np.array([
+    monkeypatch.setattr('mrzscanner.SpottingInference.__call__', lambda self, img, do_center_crop: np.array([
         "ABCDEFGHIJKLMNO1234567890ABCDEFGHIJKLMNO",  # 長度不符合 TD1 規定
         "1234567890ABCDE1234567890ABCDEF",
         "ABCDEFGHIJKLMNO1234567890ABCDEFGHIJKLMNO"
@@ -65,7 +65,7 @@ def test_postprocess_failed_td1_length(mock_mrz_scanner, monkeypatch):
 def test_postprocess_failed_td2_td3_length(mock_mrz_scanner, monkeypatch):
     """測試 TD2 或 TD3 後處理時長度不符的錯誤處理。"""
     # 模擬 SpottingInference 返回一個無效的 TD2/TD3 格式
-    monkeypatch.setattr('mrzscanner.SpottingInference.__call__', lambda self, img, do_centercrop: np.array([
+    monkeypatch.setattr('mrzscanner.SpottingInference.__call__', lambda self, img, do_center_crop: np.array([
         "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
         "L898902C36UTO6908061F9406236ZE184226B<<<<<10L898902C36UTO"  # TD3 長度超過標準
     ]))
@@ -75,7 +75,6 @@ def test_postprocess_failed_td2_td3_length(mock_mrz_scanner, monkeypatch):
 
     # 執行 MRZ 掃描並檢查錯誤代碼
     result, error = mock_mrz_scanner(img, do_postprocess=True)
-    breakpoint()
     assert error == ErrorCodes.POSTPROCESS_FAILED_TD2_TD3_LENGTH
 
 # 測試無效模型配置

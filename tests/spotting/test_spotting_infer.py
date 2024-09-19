@@ -21,14 +21,14 @@ def mock_inference(monkeypatch):
 
     # 初始化推理
     inference = Inference(gpu_id=0, backend=D.Backend.cpu,
-                          model_cfg='20240917')
+                          model_cfg='20240919')
     return inference
 
 
 def test_init(mock_inference):
     """測試初始化和模型加載。"""
     assert isinstance(mock_inference, Inference)
-    assert mock_inference.model_cfg == '20240917'
+    assert mock_inference.model_cfg == '20240919'
     assert mock_inference.image_size == (512, 512)
 
 
@@ -41,12 +41,12 @@ def test_preprocess(mock_inference, monkeypatch):
     monkeypatch.setattr(D, 'centercrop', lambda x: x)
 
     # 不進行 centercrop
-    processed_img = mock_inference.preprocess(img, do_centercrop=False)
+    processed_img = mock_inference.preprocess(img, do_center_crop=False)
     assert processed_img.shape == (3, 512, 512)  # 確認輸出大小是否正確
 
     # 測試 centercrop
     processed_img_with_crop = mock_inference.preprocess(
-        img, do_centercrop=True)
+        img, do_center_crop=True)
     assert processed_img_with_crop.shape == (3, 512, 512)  # 確認大小是否正確
 
 
@@ -65,7 +65,7 @@ def test_model_download(mock_inference, monkeypatch):
 
     # 初始化推理類
     mock_inference.__init__(
-        gpu_id=0, backend=D.Backend.cpu, model_cfg='20240917')
+        gpu_id=0, backend=D.Backend.cpu, model_cfg='20240919')
 
     # 確認是否觸發下載
     assert download_called, "Should trigger model download"
@@ -103,7 +103,7 @@ def test_inference_pipeline(mock_inference, monkeypatch):
     img = np.random.randint(0, 255, (300, 400, 3), dtype=np.uint8)
 
     # 運行整個推理管道
-    result = mock_inference(img, do_centercrop=False)
+    result = mock_inference(img, do_center_crop=False)
 
     # 確保輸出是預期的列表
     assert isinstance(result, list)

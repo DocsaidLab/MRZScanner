@@ -108,14 +108,14 @@ class MRZScanner:
     def __call__(
         self,
         img: np.ndarray,
-        do_centercrop: bool = False,
+        do_center_crop: bool = False,
         do_postprocess: bool = True
     ) -> List[str]:
         """ Run MRZScanner.
 
         Args:
             img (np.ndarray): Image.
-            do_centercrop (bool): Center crop.
+            do_center_crop (bool): Center crop.
             do_postprocess (bool): Postprocess.
 
         Returns:
@@ -126,7 +126,7 @@ class MRZScanner:
         """
         if not D.is_numpy_img(img):
             return [''], ErrorCodes.INVALID_INPUT_FORMAT
-        result = self.scanner(img=img, do_centercrop=do_centercrop)
+        result = self.scanner(img=img, do_center_crop=do_center_crop)
 
         msg = ErrorCodes.NO_ERROR
         if do_postprocess:
