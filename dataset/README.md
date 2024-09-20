@@ -169,6 +169,8 @@ This means the model can detect 97% of the text in the MRZ area, but since each 
 
 Achieving 100% accuracy is very challenging.
 
+**Note**:
+
 The validation data we prepared was pre-processed with the `DocAligner` module to correct angles, ensuring that each MRZ area’s tilt is within 5 degrees.
 
 Even with such well-prepared data, the accuracy is only around 30%, which highlights the limitations of using synthetic datasets alone.
