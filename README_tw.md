@@ -26,7 +26,7 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 
 由於本專案的相關使用方式和設定的說明佔據非常多的篇幅，因此我們謹摘要「模型設計」的部分放在這裡。
 
-套件安裝和使用的方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/category/mrzscanner/)。
+套件安裝和使用的方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/mrzscanner/)。
 
 ## 模型設計
 

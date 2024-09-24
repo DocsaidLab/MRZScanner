@@ -26,7 +26,7 @@ While many may not be familiar with MRZ, most people have a passport, which cont
 
 Due to the extensive usage instructions and setup explanations for this project, we have only summarized the "Model Design" section here.
 
-For installation and usage instructions, please refer to the [**MRZScanner Documents**](https://docsaid.org/en/docs/category/mrzscanner/).
+For installation and usage instructions, please refer to the [**MRZScanner Documents**](https://docsaid.org/en/docs/mrzscanner/).
 
 ## Model Design
 
