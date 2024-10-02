@@ -14,7 +14,7 @@ class Inference:
     configs = {
         '20240919': {
             'model_path': 'mobilenetv4_conv_small_bifpn1_l6_d256_p12345_finetune_20240919_fp32.onnx',
-            'file_id': 'EpCRaBq6KxPaQNa',
+            'file_id': 'wgCMTgkYDmRfiJy',
             'img_size_infer': (512, 512),
         },
     }
