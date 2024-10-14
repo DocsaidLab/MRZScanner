@@ -291,7 +291,7 @@ Transformer decoder 的部分，我們給的基本設定是這樣：
   title = {MRZScanner},
   year = {2024},
   publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/DocsaidLab/MRZScanner}}
+  url = {https://github.com/DocsaidLab/MRZScanner},
+  note = {GitHub repository}
 }
 ```

@@ -283,7 +283,7 @@ If you find our work helpful, please cite our repository:
   title = {MRZScanner},
   year = {2024},
   publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/DocsaidLab/MRZScanner}}
+  url = {https://github.com/DocsaidLab/MRZScanner},
+  note = {GitHub repository}
 }
 ```
