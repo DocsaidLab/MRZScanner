@@ -74,6 +74,39 @@ For installation and usage instructions, please refer to the [**MRZScanner Docum
    pip install dist/mrzscanner_docsaid-*-py3-none-any.whl
    ```
 
+## Inference
+
+> [!TIP]
+> We have designed an automatic model download feature. When the program detects that you are missing the model, it will automatically connect to our server to download it.
+
+Here is a simple example:
+
+```python
+import cv2
+from skimage import io
+from mrzscanner import MRZScanner
+
+# build model
+model = MRZScanner()
+
+# read image
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+# inference
+result_mrz, error_msg = model(img)
+
+# Output MRZ block text and error message
+print(result_mrz)
+# >>> ('PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#     'C946302620AZE6707297F23031072W12IMJ<<<<<<<40')
+print(error_msg)
+# >>> <ErrorCodes.NO_ERROR: 'No error.'>
+```
+
+> [!TIP]
+> MRZScanner has been encapsulated with `__call__`, so you can directly call the instance for inference.
+
 ## Model Design
 
 During the testing phase, we are initially releasing an end-to-end single-stage model.

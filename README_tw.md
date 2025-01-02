@@ -74,6 +74,39 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
    pip install dist/mrzscanner_docsaid-*-py3-none-any.whl
    ```
 
+## 模型推論
+
+> [!TIP]
+> 我們有設計了自動下載模型的功能，當程式檢查你缺少模型時，會自動連接到我們的伺服器進行下載。
+
+以下是一個簡單的範例：
+
+```python
+import cv2
+from skimage import io
+from mrzscanner import MRZScanner
+
+# build model
+model = MRZScanner()
+
+# read image
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+# inference
+result_mrz, error_msg = model(img)
+
+# 輸出為 MRZ 區塊文字及錯誤訊息提示
+print(result_mrz)
+# >>> ('PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#     'C946302620AZE6707297F23031072W12IMJ<<<<<<<40')
+print(error_msg)
+# >>> <ErrorCodes.NO_ERROR: 'No error.'>
+```
+
+> [!TIP]
+> MRZScanner 已經用 `__call__` 進行了封裝，因此你可以直接呼叫實例進行推論。
+
 ## 模型設計
 
 測試階段，我們先開放端到端的一階段模型。
