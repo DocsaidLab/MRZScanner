@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 
-import docsaidkit as D
+import capybara as cb
 import numpy as np
 
 from .spotting import Inference as SpottingInference
@@ -11,7 +11,7 @@ __all__ = [
     'MRZScanner', 'ModelType', 'SpottingInference', 'ErrorCodes']
 
 
-class ModelType(D.EnumCheckMixin, Enum):
+class ModelType(cb.EnumCheckMixin, Enum):
     default = 0
     spotting = 1
 
@@ -30,7 +30,7 @@ class MRZScanner:
         self,
         model_type: ModelType = ModelType.spotting,
         model_cfg: str = None,
-        backend: D.Backend = D.Backend.cpu,
+        backend: cb.Backend = cb.Backend.cpu,
         gpu_id: int = 0,
         **kwargs
     ) -> None:
@@ -39,8 +39,8 @@ class MRZScanner:
         Args:
             model_type (ModelType): Model type.
             model_cfg (str): Model configuration.
-            backend (D.Backend): Backend.
-            gpu_id (int): GPU ID.
+            backend (cb.Backend): Backend.
+            gpu_id (int): GPU Icb.
             **kwargs: Additional keyword arguments.
 
         Raises:
@@ -80,14 +80,16 @@ class MRZScanner:
             doc_number = results[0][5:14]
             doc_number_hash = replace_letters(results[0][14])
             optional = results[0][15:30]
-            results[0] = f'{doc}{country}{doc_number}{doc_number_hash}{optional}'
+            results[0] = f'{doc}{country}{doc_number}{
+                doc_number_hash}{optional}'
             # Line2
             birth_date = replace_letters(results[1][0:7])
             sex = replace_sex(results[1][7])
             expiry_date = replace_letters(results[1][8:15])
             nationality = replace_digits(results[1][15:18])
             optional = results[1][18:30]
-            results[1] = f'{birth_date}{sex}{expiry_date}{nationality}{optional}'
+            results[1] = f'{birth_date}{sex}{
+                expiry_date}{nationality}{optional}'
             return results, ErrorCodes.NO_ERROR
 
         elif doc_type == 2:  # TD2 or TD3
@@ -102,7 +104,8 @@ class MRZScanner:
             sex = replace_sex(results[1][20])
             expiry_date = replace_letters(results[1][21:28])
             optional = results[1][28:]
-            results[1] = f'{doc_number}{doc_number_hash}{nationality}{birth_date}{sex}{expiry_date}{optional}'
+            results[1] = f'{doc_number}{doc_number_hash}{
+                nationality}{birth_date}{sex}{expiry_date}{optional}'
             return results, ErrorCodes.NO_ERROR
 
     def __call__(
@@ -124,7 +127,7 @@ class MRZScanner:
         Raises:
             ErrorCodes: If invalid input format.
         """
-        if not D.is_numpy_img(img):
+        if not cb.is_numpy_img(img):
             return [''], ErrorCodes.INVALID_INPUT_FORMAT
         result = self.scanner(img=img, do_center_crop=do_center_crop)
 
