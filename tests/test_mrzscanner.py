@@ -1,6 +1,6 @@
-import docsaidkit as D
 import numpy as np
 import pytest
+
 from mrzscanner import ErrorCodes, ModelType, MRZScanner
 
 

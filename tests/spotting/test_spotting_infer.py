@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import List
 
+import capybara as cb
 import cv2
-import docsaidkit as D
 import numpy as np
 import pytest
+
 from mrzscanner.spotting import Inference
 
 
@@ -12,15 +13,15 @@ from mrzscanner.spotting import Inference
 def mock_inference(monkeypatch):
     """Fixture to初始化推理類並模擬需要的依賴。"""
     # 模擬 get_curdir
-    monkeypatch.setattr(D, 'get_curdir', lambda x: Path('/mock/path'))
+    monkeypatch.setattr(cb, 'get_curdir', lambda x: Path('/mock/path'))
 
     # 模擬下載模型
     def mock_download(file_id, file_name, model_path):
         pass  # 模擬下載，不實際進行下載
-    monkeypatch.setattr(D, 'download_from_docsaid', mock_download)
+    monkeypatch.setattr(cb, 'download_from_docsaid', mock_download)
 
     # 初始化推理
-    inference = Inference(gpu_id=0, backend=D.Backend.cpu,
+    inference = Inference(gpu_id=0, backend=cb.Backend.cpu,
                           model_cfg='20240919')
     return inference
 
@@ -38,7 +39,7 @@ def test_preprocess(mock_inference, monkeypatch):
     img = np.random.randint(0, 255, (300, 400, 3), dtype=np.uint8)
 
     # 模擬 centercrop 函數
-    monkeypatch.setattr(D, 'centercrop', lambda x: x)
+    monkeypatch.setattr(cb, 'centercrop', lambda x: x)
 
     # 不進行 centercrop
     processed_img = mock_inference.preprocess(img, do_center_crop=False)
@@ -61,11 +62,11 @@ def test_model_download(mock_inference, monkeypatch):
     def mock_download(file_id, file_name, model_path):
         download_called.append(True)
 
-    monkeypatch.setattr(D, 'download_from_docsaid', mock_download)
+    monkeypatch.setattr(cb, 'download_from_docsaid', mock_download)
 
     # 初始化推理類
     mock_inference.__init__(
-        gpu_id=0, backend=D.Backend.cpu, model_cfg='20240919')
+        gpu_id=0, backend=cb.Backend.cpu, model_cfg='20240919')
 
     # 確認是否觸發下載
     assert download_called, "Should trigger model download"
