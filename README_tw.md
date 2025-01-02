@@ -4,8 +4,9 @@
 
 <p align="left">
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
+    <a href=""><img src="https://img.shields.io/badge/python-3.10+-aff.svg"></a>
     <a href="https://github.com/DocsaidLab/MRZScanner/releases"><img src="https://img.shields.io/github/v/release/DocsaidLab/MRZScanner?color=ffa"></a>
-    <a href=""><img src="https://img.shields.io/badge/python-3.8+-aff.svg"></a>
+    <a href="https://pypi.org/project/mrzscanner_docsaid/"><img src="https://img.shields.io/pypi/v/mrzscanner_docsaid.svg"></a>
 </p>
 
 ## 介紹
@@ -27,6 +28,51 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 由於本專案的相關使用方式和設定的說明佔據非常多的篇幅，因此我們謹摘要「模型設計」的部分放在這裡。
 
 套件安裝和使用的方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/mrzscanner/)。
+
+## 安裝
+
+### 透過 PyPI 安裝
+
+1. 安裝 `mrzscanner_docsaid`：
+
+   ```bash
+   pip install mrzscanner_docsaid
+   ```
+
+2. 驗證安裝：
+
+   ```bash
+   python -c "import mrzscanner; print(mrzscanner.__version__)"
+   ```
+
+3. 如果你看到版本號，則表示安裝成功。
+
+### 從 GitHub 安裝
+
+1. 從 GitHub 下載專案：
+
+   ```bash
+   git clone https://github.com/DocsaidLab/MRZScanner.git
+   ```
+
+2. 安裝 wheel 套件：
+
+   ```bash
+   pip install wheel
+   ```
+
+3. 建置 whl 檔案：
+
+   ```bash
+   cd MRZScanner
+   python setup.py bdist_wheel
+   ```
+
+4. 安裝 whl 檔案：
+
+   ```bash
+   pip install dist/mrzscanner_docsaid-*-py3-none-any.whl
+   ```
 
 ## 模型設計
 

@@ -4,8 +4,9 @@
 
 <p align="left">
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-dfd.svg"></a>
+    <a href=""><img src="https://img.shields.io/badge/python-3.10+-aff.svg"></a>
     <a href="https://github.com/DocsaidLab/MRZScanner/releases"><img src="https://img.shields.io/github/v/release/DocsaidLab/MRZScanner?color=ffa"></a>
-    <a href=""><img src="https://img.shields.io/badge/python-3.8+-aff.svg"></a>
+    <a href="https://pypi.org/project/mrzscanner_docsaid/"><img src="https://img.shields.io/pypi/v/mrzscanner_docsaid.svg"></a>
 </p>
 
 ## Introduction
@@ -27,6 +28,51 @@ While many may not be familiar with MRZ, most people have a passport, which cont
 Due to the extensive usage instructions and setup explanations for this project, we have only summarized the "Model Design" section here.
 
 For installation and usage instructions, please refer to the [**MRZScanner Documents**](https://docsaid.org/en/docs/mrzscanner/).
+
+## Installation
+
+### via PyPI
+
+1. Install the package from PyPI:
+
+   ```bash
+   pip install mrzscanner-docsaid
+   ```
+
+2. Verify the installation:
+
+   ```bash
+   python -c "import mrzscanner; print(mrzscanner.__version__)"
+   ```
+
+3. If the version number is displayed, the installation was successful.
+
+### via Git Clone
+
+1. Clone this repository:
+
+   ```bash
+   git clone https://github.com/DocsaidLab/MRZScanner.git
+   ```
+
+2. Install the wheel package:
+
+   ```bash
+   pip install wheel
+   ```
+
+3. Build the wheel file:
+
+   ```bash
+   cd MRZScanner
+   python setup.py bdist_wheel
+   ```
+
+4. Install the built wheel file:
+
+   ```bash
+   pip install dist/mrzscanner_docsaid-*-py3-none-any.whl
+   ```
 
 ## Model Design
 
