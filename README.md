@@ -12,7 +12,7 @@
 ## Introduction
 
 <div align="center">
-    <img src="./docs/title.webp" width="800">
+    <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/title.webp?raw=true" width="800">
 </div>
 
 MRZ (Machine Readable Zone) refers to a specific area on travel documents such as passports, visas, and ID cards. The information in this area can be quickly read by machines. MRZ is designed and generated according to the International Civil Aviation Organization’s (ICAO) Document 9303, intended to speed up border checks and improve the accuracy of data processing.
@@ -20,7 +20,7 @@ MRZ (Machine Readable Zone) refers to a specific area on travel documents such a
 While many may not be familiar with MRZ, most people have a passport, which contains an MRZ block. It typically looks like the section outlined in red:
 
 <div align="center">
-    <img src="./docs/img1.jpg" width="60%">
+    <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img1.jpg?raw=true" width="60%">
 </div>
 
 ## Technical Documentation
@@ -95,7 +95,7 @@ MRZ localization can be approached in two ways:
 1. **Locating MRZ corner points:**
 
    <div align="center">
-        <img src="./docs/img2.jpg" width="80%">
+        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img2.jpg?raw=true" width="80%">
     </div>
 
    This is similar to previous document localization projects we've worked on, except here we’re localizing the MRZ area instead of the whole document.
@@ -109,7 +109,7 @@ MRZ localization can be approached in two ways:
 2. **Segmenting the MRZ area:**
 
     <div align="center">
-        <img src="./docs/img3.jpg" width="80%">
+        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img3.jpg?raw=true" width="80%">
     </div>
 
    This approach is much more stable, as we can directly predict the MRZ region using a segmentation model. The text within the MRZ area physically exists in the image, so the model doesn’t have to "imagine" anything extra. This allows us to segment the MRZ region directly without worrying about corner points.
@@ -128,7 +128,7 @@ This paper offers a unified comparison and introduction to various loss function
 
 For those interested, you can refer to the paper; we won’t go into detail here.
 
-![Log-Cosh Dice Loss](./docs/img4.jpg)
+![Log-Cosh Dice Loss](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img4.jpg?raw=true)
 
 ### Recognition Model
 
@@ -149,7 +149,7 @@ At this stage, there are a couple of design options:
    For example, if you use a Transformer Encoder structure, the model design could look like this:
 
     <div align="center">
-        <img src="./docs/img6.jpg" width="80%">
+        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img6.jpg?raw=true" width="80%">
     </div>
 
    Due to the self-attention mechanism, there could be multiple tokens pointing to the same character. Using a typical decoding method could confuse the model—why should it decode one character's image into another character?
@@ -161,7 +161,7 @@ At this stage, there are a couple of design options:
    If you don’t like CTC and find it cumbersome, you can use an Encoder-Decoder architecture instead, where the model design would look like this:
 
     <div align="center">
-        <img src="./docs/img7.jpg" width="80%">
+      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img7.jpg?raw=true" width="80%">
     </div>
 
    This approach allows direct string decoding without needing CTC since the tokens fed into the Decoder are text queries, and each token is responsible for finding the corresponding character in sequence.
@@ -190,11 +190,11 @@ The MRZ region can vary with the user’s capture angle, meaning that before det
 
 ### Model Architecture
 
-![single-stage](./docs/img9.jpg)
+![single-stage](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img9.jpg?raw=true)
 
 ### Backbone
 
-![backbone](./docs/img8.jpg)
+![backbone](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img8.jpg?raw=true)
 
 Recently, Google released a new paper: **MobileNet-V4**, which is optimized for mobile devices. This is great news for us, and we’ll use it as our Backbone, using the pretrained weights from `timm`, with an input image size of 512 x 512 in RGB.
 
@@ -205,7 +205,7 @@ After testing, we found that at an input resolution of 512 x 512, the text size 
 
 ### Neck
 
-![neck](./docs/img10.jpg)
+![neck](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img10.jpg?raw=true)
 
 To better fuse multi-scale features, we introduced BiFPN. By allowing bidirectional flow of contextual information, BiFPN enhances feature representation. It produces a set of rich, scale-aware feature maps that effectively capture objects at different scales, positively impacting prediction accuracy.
 

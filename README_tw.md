@@ -12,7 +12,7 @@
 ## 介紹
 
 <div align="center">
-    <img src="./docs/title.webp" width="800">
+   <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/title.webp?raw=true" width="800">
 </div>
 
 MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證等旅行證件上的一段特定區域，該區域內的資訊可以被機器快速讀取。 MRZ 依照國際民航組織（ICAO）第 9303 號文件的規定進行設計和生成，用於加快邊境檢查和提高資訊處理的準確性。
@@ -20,7 +20,7 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 人們可能不知道 MRZ 是什麼，但通常手上都有一本護照，上面就有 MRZ 區塊，長得類似這樣，紅色框的部分：
 
 <div align="center">
-    <img src="./docs/img1.jpg" width="60%">
+   <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img1.jpg?raw=true" width="60%">
 </div>
 
 ## 技術文件
@@ -36,7 +36,7 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 1. 安裝 `mrzscanner_docsaid`：
 
    ```bash
-   pip install mrzscanner_docsaid
+   pip install mrzscanner-docsaid
    ```
 
 2. 驗證安裝：
@@ -95,7 +95,7 @@ MRZ 區域的定位大概可以分成兩個方向:
 1. **定位 MRZ 區域角點：**
 
     <div align="center">
-    <img src="./docs/img2.jpg" width="80%">
+      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img2.jpg?raw=true" width="80%">
     </div>
 
    這和之前我們做過的文件定位的專案類似，只是這裡把文件換成 MRZ 區域。
@@ -109,7 +109,7 @@ MRZ 區域的定位大概可以分成兩個方向:
 2. **分割 MRZ 區域：**
 
     <div align="center">
-    <img src="./docs/img3.jpg" width="80%">
+        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img3.jpg?raw=true" width="80%">
     </div>
 
    這個方法就比較穩定了，因為我們可以直接用分割模型去預測 MRZ 區域的範圍。MRZ 區域上的文字也是真實存在於圖面上，不需要模型做「多餘」的臆測。這樣一來，我們就可以直接將 MRZ 區域分割出來，不需要再去擔心角點的問題。
@@ -128,7 +128,7 @@ MRZ 區域的定位大概可以分成兩個方向:
 
 有興趣的讀者可以參考這篇論文，這裡就不再贅述了。
 
-![Log-Cosh Dice Loss](./docs/img4.jpg)
+![Log-Cosh Dice Loss](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img4.jpg?raw=true)
 
 ### 辨識模型
 
@@ -149,7 +149,7 @@ MRZ 區域的定位大概可以分成兩個方向:
    舉例來說，如果你只要使用 Transformer Encoder 的架構，那模型設計可以是這樣：
 
     <div align="center">
-    <img src="./docs/img6.jpg" width="80%">
+      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img6.jpg?raw=true" width="80%">
     </div>
 
    由於自注意力機制的關係，因此可能會有多個 Token 同時指向同一個文字的情況，這時候如果使用一般的解碼方式，可能會讓模型感到困惑：明明就是這個文字的影像，為什麼要解碼成另外一個文字？
@@ -161,7 +161,7 @@ MRZ 區域的定位大概可以分成兩個方向:
    或是你不喜歡 CTC，覺得那是個麻煩的東西，那你可以採用 Encoder-Decoder 的架構，模型設計可以是這樣：
 
     <div align="center">
-    <img src="./docs/img7.jpg" width="80%">
+      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img7.jpg?raw=true" width="80%">
     </div>
 
    這種方式可以直接解碼字串，不需要再經過一層 CTC，因為輸入 Decoder 的 token 就是對文字的查詢，每個 token 都負責找出對應順序的文字。
@@ -192,11 +192,11 @@ MRZ 的區域會隨著使用者拍攝角度的不同而有所變化，這就意�
 
 ### 模型架構
 
-![single-stage](./docs/img9.jpg)
+![single-stage](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img9.jpg?raw=true)
 
 ### Backbone
 
-![backbone](./docs/img8.jpg)
+![backbone](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img8.jpg?raw=true)
 
 剛好最近 Google 發布了新論文：**MobileNet-V4**，這個模型有針對移動裝置上的效能進行優化，這對我們來說是一個很好的消息，直接拿來用。
 
@@ -209,7 +209,7 @@ MRZ 的區域會隨著使用者拍攝角度的不同而有所變化，這就意�
 
 ### Neck
 
-![neck](./docs/img10.jpg)
+![neck](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img10.jpg?raw=true)
 
 為了更好地融合多尺度的特徵，我們引入了 BiFPN。通過上下文信息的雙向流動，增強了特徵的表達能力。BiFPN 會產生一系列尺度豐富且語義強的特徵圖，這些特徵圖對於捕捉不同尺度的對象非常有效，並對最終的預測精度有正面影響。
 
