@@ -62,7 +62,7 @@ def test_model_download(mock_inference, monkeypatch):
     def mock_download(file_id, file_name, model_path):
         download_called.append(True)
 
-    monkeypatch.setattr(cb, 'download_from_docsaid', mock_download)
+    monkeypatch.setattr(cb, 'download_from_google', mock_download)
 
     # 初始化推理類
     mock_inference.__init__(

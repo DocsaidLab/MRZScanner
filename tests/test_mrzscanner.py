@@ -37,7 +37,7 @@ def test_mrz_scanner_call(mock_mrz_scanner):
     result, error = mock_mrz_scanner(img)
 
     # 檢查結果
-    assert error == ErrorCodes.POSTPROCESS_FAILED_LINE_COUNT
+    assert error == ErrorCodes.POSTPROCESS_FAILED_TD1_LENGTH
 
 # 測試 TD1 後處理失敗
 
