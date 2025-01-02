@@ -2,11 +2,11 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import albumentations as A
+import capybara as cb
 import cv2
-import docsaidkit as D
 import numpy as np
 
-DIR = D.get_curdir(__file__)
+DIR = cb.get_curdir(__file__)
 
 
 class MRZFinetuneDataset:
@@ -32,7 +32,7 @@ class MRZFinetuneDataset:
         }
 
         for target, val in gt_codebook.items():
-            data = D.load_json(
+            data = cb.load_json(
                 self.root / f'templates/annotations/{target}.json')
             for d in data['_via_img_metadata'].values():
                 for region in d['regions']:
@@ -42,7 +42,7 @@ class MRZFinetuneDataset:
                         mrz2 = region['region_attributes']['value']
                 val[d['filename'].replace('.jpg', '')] = mrz1 + '&' + mrz2
 
-        for f in D.Tqdm(D.get_files(self.root / 'images/', suffix=['.jpg'])):
+        for f in cb.Tqdm(cb.get_files(self.root / 'images/', suffix=['.jpg'])):
             if 'aze_passport' in str(f):
                 target = 'aze_passport'
             elif 'grc_passport' in str(f):
@@ -88,8 +88,8 @@ class MRZFinetuneDataset:
 
     def __getitem__(self, idx):
         img_path, gt = self.ds_midv2020[idx]
-        img = D.imread(img_path)
-        img = D.imresize(img, size=self.image_size)
+        img = cb.imread(img_path)
+        img = cb.imresize(img, size=self.image_size)
         img = self.aug_midv(image=img)['image']
 
         if self.return_tensor:

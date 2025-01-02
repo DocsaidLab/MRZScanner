@@ -42,7 +42,6 @@
 
 ```python
 import cv2
-import docsaidkit as D
 from train_dataset import MRZDataset
 
 ds = MRZDataset(
@@ -95,10 +94,10 @@ print('GT:', gt.split('&'))
 `poly` 是 MRZ 區域的四個點，我們可以畫出來看看：
 
 ```python
-import docsaidkit as D
+import capybara as cb
 
-poly_img = D.draw_polygon(img.copy(), poly, color=(0, 255, 0))
-D.imwrite(poly_img, 'poly.jpg')
+poly_img = cb.draw_polygon(img.copy(), poly, color=(0, 255, 0))
+cb.imwrite(poly_img, 'poly.jpg')
 ```
 
 <div align="center">
@@ -116,7 +115,7 @@ D.imwrite(poly_img, 'poly.jpg')
 我們可以畫出來看看。
 
 ```python
-import docsaidkit as D
+import capybara as cb
 
 point_img = img.copy()
 for p in fixed_points:
@@ -124,7 +123,7 @@ for p in fixed_points:
         break
     cv2.circle(point_img, (int(p[0]), int(p[1])), 2, (0, 0, 255), -1)
 
-D.imwrite(point_img, 'points.jpg')
+cb.imwrite(point_img, 'points.jpg')
 ```
 
 <div align="center">
@@ -190,7 +189,6 @@ D.imwrite(point_img, 'points.jpg')
 使用方式如下：
 
 ```python
-import docsaidkit as D
 from finetune_dataset import MRZFinetuneDataset
 
 ds = MRZFinetuneDataset(

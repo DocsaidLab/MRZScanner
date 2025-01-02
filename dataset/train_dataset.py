@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import albumentations as A
+import capybara as cb
 import cv2
-import docsaidkit as D
 import numpy as np
 from wordcanvas import MRZGenerator
 
-DIR = D.get_curdir(__file__)
+DIR = cb.get_curdir(__file__)
 
 
 class DetectionImageAug:
@@ -99,7 +99,7 @@ class DetectionImageAug:
         img = outputs['image']
         box = outputs['bboxes'][0]
         pts = outputs['points']
-        kps = D.order_points_clockwise(np.array(outputs['keypoints']))
+        kps = cb.order_points_clockwise(np.array(outputs['keypoints']))
         return img, box, kps, pts
 
 
@@ -122,11 +122,11 @@ class MRZDataset:
         self.length_of_dataset = length_of_dataset
 
         # 使用 indoor_scene_recognition 資料集作為基底背景
-        self.background = D.get_files(
+        self.background = cb.get_files(
             self.root / 'indoor_scene_recognition', suffix=['.jpg'])
 
         # 使用 DocVQA 資料集作為文字雜訊背景
-        self.text_background = D.get_files(
+        self.text_background = cb.get_files(
             self.root / 'DocVQA', suffix=['.png'])
 
         # 調用 MRZGenerator 生成 MRZ 圖片（基於 wordcanvas 實作）
@@ -143,9 +143,9 @@ class MRZDataset:
     ) -> np.ndarray:
         img = img.transpose(2, 0, 1).astype(np.float32) / 255.
         mask = mask.astype(np.float32) / 255.
-        poly = D.Polygon(poly).normalize(
+        poly = cb.Polygon(poly).normalize(
             w=self.image_size[1], h=self.image_size[0]).numpy()
-        points = D.Polygon(points).normalize(
+        points = cb.Polygon(points).normalize(
             w=self.image_size[1], h=self.image_size[0]).numpy()
         mrz_hmap = mrz_hmap[..., 0].astype(np.float32) / 255.
         return img, mask, poly, points, mrz_hmap
@@ -158,7 +158,7 @@ class MRZDataset:
 
         half_ksize = ksize // 2
         mask_h, mask_w = mask.shape[:2]
-        mask = D.pad(mask, pad_size=(half_ksize, half_ksize))
+        mask = cb.pad(mask, pad_size=(half_ksize, half_ksize))
 
         for p in poly:
             x, y = int(p[0]), int(p[1])
@@ -194,7 +194,7 @@ class MRZDataset:
         img: np.ndarray,
         mrz_img: np.ndarray,
         mrz_points: List[Tuple[int, int]]
-    ) -> Tuple[np.ndarray, D.Box, np.ndarray]:
+    ) -> Tuple[np.ndarray, cb.Box, np.ndarray]:
 
         ori_h = mrz_img.shape[0]
         ori_w = mrz_img.shape[1]
@@ -203,10 +203,10 @@ class MRZDataset:
         random_x2 = int(img.shape[1] * np.random.uniform(0.85, 0.98))
         random_y1 = int(img.shape[0] * np.random.uniform(0.02, 0.8))
 
-        mrz_img = D.imresize(
+        mrz_img = cb.imresize(
             mrz_img,
             size=(None, random_x2 - random_x1),
-            interpolation=D.INTER.NEAREST
+            interpolation=cb.INTER.NEAREST
         )
 
         slice_y = slice(random_y1, random_y1 + mrz_img.shape[0])
@@ -217,7 +217,7 @@ class MRZDataset:
             img[slice_y, slice_x]
         )
 
-        box = D.Box([
+        box = cb.Box([
             random_x1,
             random_y1,
             random_x2,
@@ -234,10 +234,10 @@ class MRZDataset:
 
     def apply_text(self, img):
         idx = np.random.randint(0, len(self.text_background))
-        text_img = D.imread(self.text_background[idx])
+        text_img = cb.imread(self.text_background[idx])
         text_img = A.RandomResizedCrop(height=img.shape[0], width=img.shape[1])(
             image=text_img)['image']
-        text_img = np.stack([D.imbinarize(text_img)] * 3, axis=-1)
+        text_img = np.stack([cb.imbinarize(text_img)] * 3, axis=-1)
         img = np.where(
             text_img == (0, 0, 0),
             text_img,
@@ -252,7 +252,7 @@ class MRZDataset:
 
         # 隨機選擇背景圖片
         idx = np.random.randint(0, len(self.background))
-        img = D.imread(self.background[idx])
+        img = cb.imread(self.background[idx])
 
         # 隨機生成 MRZ 文字和圖片
         mrz_infos = self.mrz_generator()
@@ -267,7 +267,7 @@ class MRZDataset:
         img = self.apply_transparency(img, np.random.uniform(0, 0.6))
 
         # 縮放基底圖片至輸出大小
-        img = D.imresize(img, size=self.image_size)
+        img = cb.imresize(img, size=self.image_size)
 
         # 貼上 MRZ 圖片
         img, box, poly, points = self.apply_mrz_image(
@@ -287,7 +287,7 @@ class MRZDataset:
         mrz_points_hmap = self.gen_gaussian_point(mrz_points_hmap, points)
 
         # 繪製 MRZ 文字區域的二元分割圖
-        mrz_region_hmap = D.draw_polygon(
+        mrz_region_hmap = cb.draw_polygon(
             np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8),
             polygon=poly,
             color=(255, 255, 255),

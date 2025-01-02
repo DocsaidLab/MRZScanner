@@ -44,7 +44,6 @@ Here’s how to use it:
 
 ```python
 import cv2
-import docsaidkit as D
 from train_dataset import MRZDataset
 
 ds = MRZDataset(
@@ -97,10 +96,10 @@ If you are training a text recognition model, this string will serve as your lab
 `poly` contains the four points of the MRZ area. We can plot it as follows:
 
 ```python
-import docsaidkit as D
+import capybara as cb
 
-poly_img = D.draw_polygon(img.copy(), poly, color=(0, 255, 0))
-D.imwrite(poly_img, 'poly.jpg')
+poly_img = cb.draw_polygon(img.copy(), poly, color=(0, 255, 0))
+cb.imwrite(poly_img, 'poly.jpg')
 ```
 
 <div align="center">
@@ -118,7 +117,7 @@ These points represent the center of each character, with TD1 having a fixed out
 We can plot the points like this:
 
 ```python
-import docsaidkit as D
+import capybara as cb
 
 point_img = img.copy()
 for p in fixed_points:
@@ -126,7 +125,7 @@ for p in fixed_points:
         break
     cv2.circle(point_img, (int(p[0]), int(p[1])), 2, (0, 0, 255), -1)
 
-D.imwrite(point_img, 'points.jpg')
+cb.imwrite(point_img, 'points.jpg')
 ```
 
 <div align="center">
@@ -196,7 +195,6 @@ Once these steps are completed, you can start generating the dataset.
 Here’s how to use it:
 
 ```python
-import docsaidkit as D
 from finetune_dataset import MRZFinetuneDataset
 
 ds = MRZFinetuneDataset(
