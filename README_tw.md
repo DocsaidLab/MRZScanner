@@ -7,6 +7,7 @@
     <a href=""><img src="https://img.shields.io/badge/python-3.10+-aff.svg"></a>
     <a href="https://github.com/DocsaidLab/MRZScanner/releases"><img src="https://img.shields.io/github/v/release/DocsaidLab/MRZScanner?color=ffa"></a>
     <a href="https://pypi.org/project/mrzscanner_docsaid/"><img src="https://img.shields.io/pypi/v/mrzscanner_docsaid.svg"></a>
+    <a href="https://pypi.org/project/mrzscanner_docsaid/"><img src="https://img.shields.io/pypi/dm/mrzscanner_docsaid?color=9cf"></a>
 </p>
 
 ## 介紹
