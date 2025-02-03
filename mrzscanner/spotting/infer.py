@@ -38,6 +38,8 @@ class Inference:
                 cfg['file_id'], model_path.name, str(DIR / 'ckpt'))
 
         self.model = cb.ONNXEngine(model_path, gpu_id, backend, **kwargs)
+        self.input_key = list(self.model.input_infos.keys())[0]
+        self.output_key = list(self.model.output_infos.keys())[0]
 
         # Text en/de-coding
         keys = ["<PAD>", "<EOS>"] + \
@@ -52,9 +54,7 @@ class Inference:
             decode_mode=DecodeMode.Normal
         )
 
-    def preprocess(self, img: np.ndarray, do_center_crop: bool) -> np.ndarray:
-        if do_center_crop:
-            img = cb.centercrop(img)
+    def preprocess(self, img: np.ndarray, normalize: bool) -> np.ndarray:
 
         # Padding
         if img.shape[0] < img.shape[1]:  # H < W
@@ -70,23 +70,14 @@ class Inference:
 
         tensor = cb.imresize(img, size=tuple(self.image_size))
         tensor = np.transpose(tensor, axes=(2, 0, 1)).astype('float32')
+        tensor = tensor[None] / 255.0 if normalize else tensor[None]
 
-        # Normalize depanding on the model
-        tensor = tensor / 255.0
+        return {self.input_key: tensor}
 
-        return tensor
-
-    def engine(self, tensor: np.ndarray) -> np.ndarray:
-        result = self.model(img=tensor[None])['text']
-        return result.argmax(-1)
-
-    def __call__(
-        self,
-        img: np.ndarray,
-        do_center_crop: bool = False
-    ) -> List[str]:
-        data = self.preprocess(img, do_center_crop=do_center_crop)
-        result = self.engine(data)
-        result = self.text_dec(result)[0]
+    def __call__(self, img: np.ndarray, normalize: bool = True) -> List[str]:
+        tensor = self.preprocess(img, normalize=normalize)
+        x = self.model(**tensor)
+        x = x[self.output_key].argmax(-1)
+        result = self.text_dec(x)[0]
         result = result.split('&')
         return result
