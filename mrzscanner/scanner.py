@@ -4,6 +4,7 @@ from typing import List
 import capybara as cb
 import numpy as np
 
+from .det import Inference as DetectionInference
 from .spotting import Inference as SpottingInference
 from .utils import replace_digits, replace_letters, replace_sex
 
@@ -12,8 +13,10 @@ __all__ = [
 
 
 class ModelType(cb.EnumCheckMixin, Enum):
-    default = 0
     spotting = 1
+    two_stage = 2
+    detection = 3
+    recognition = 4
 
 
 class ErrorCodes(Enum):
@@ -48,8 +51,11 @@ class MRZScanner:
         """
 
         self.scanner = None
-        model_type = ModelType.obj_to_enum(model_type)
-        if model_type == ModelType.spotting or model_type == ModelType.default:
+        self.detector = None
+        self.recognizer = None
+
+        self.model_type = ModelType.obj_to_enum(model_type)
+        if self.model_type == ModelType.spotting:
             model_cfg = '20240919' if model_cfg is None else model_cfg
             valid_model_cfgs = list(SpottingInference.configs.keys())
             if model_cfg not in valid_model_cfgs:
@@ -61,6 +67,20 @@ class MRZScanner:
                 gpu_id=gpu_id,
                 backend=backend,
                 model_cfg=model_cfg,
+                **kwargs
+            )
+        elif self.model_type == ModelType.detection:
+            det_cfg = '20250202' if model_cfg is None else model_cfg
+            valid_det_cfgs = list(DetectionInference.configs.keys())
+            if det_cfg not in valid_det_cfgs:
+                raise ValueError(
+                    f'Invalid model_cfg: {det_cfg}, '
+                    f'valid model_cfgs: {valid_det_cfgs}'
+                )
+            self.detector = DetectionInference(
+                gpu_id=gpu_id,
+                backend=backend,
+                model_cfg=det_cfg,
                 **kwargs
             )
 
@@ -80,16 +100,16 @@ class MRZScanner:
             doc_number = results[0][5:14]
             doc_number_hash = replace_letters(results[0][14])
             optional = results[0][15:30]
-            results[0] = f'{doc}{country}{doc_number}{
-                doc_number_hash}{optional}'
+            results[0] = \
+                f'{doc}{country}{doc_number}{doc_number_hash}{optional}'
             # Line2
             birth_date = replace_letters(results[1][0:7])
             sex = replace_sex(results[1][7])
             expiry_date = replace_letters(results[1][8:15])
             nationality = replace_digits(results[1][15:18])
             optional = results[1][18:30]
-            results[1] = f'{birth_date}{sex}{
-                expiry_date}{nationality}{optional}'
+            results[1] = \
+                f'{birth_date}{sex}{expiry_date}{nationality}{optional}'
             return results, ErrorCodes.NO_ERROR
 
         elif doc_type == 2:  # TD2 or TD3
@@ -104,9 +124,12 @@ class MRZScanner:
             sex = replace_sex(results[1][20])
             expiry_date = replace_letters(results[1][21:28])
             optional = results[1][28:]
-            results[1] = f'{doc_number}{doc_number_hash}{
-                nationality}{birth_date}{sex}{expiry_date}{optional}'
+            results[1] = \
+                f'{doc_number}{doc_number_hash}{nationality}{birth_date}{sex}{expiry_date}{optional}'
             return results, ErrorCodes.NO_ERROR
+
+    def __repr__(self) -> str:
+        return f'{self.scanner.__class__.__name__}({self.scanner.model})'
 
     def __call__(
         self,
@@ -129,12 +152,17 @@ class MRZScanner:
         """
         if not cb.is_numpy_img(img):
             return [''], ErrorCodes.INVALID_INPUT_FORMAT
-        result = self.scanner(img=img, do_center_crop=do_center_crop)
+
+        if do_center_crop:
+            img = cb.centercrop(img)
+
+        if self.model_type == ModelType.spotting:
+            result = self.scanner(img=img)
+        elif self.model_type == ModelType.detection:
+            result = self.detector(img=img)
 
         msg = ErrorCodes.NO_ERROR
-        if do_postprocess:
+        if do_postprocess and self.model_type == ModelType.spotting:
             result, msg = self.postprocess(result)
-        return result, msg
 
-    def __repr__(self) -> str:
-        return f'{self.scanner.__class__.__name__}({self.scanner.model})'
+        return result, msg
