@@ -232,7 +232,7 @@ The MRZ region can vary with the user’s capture angle, meaning that before det
 
 Recently, Google released a new paper: **MobileNet-V4**, which is optimized for mobile devices. This is great news for us, and we’ll use it as our Backbone, using the pretrained weights from `timm`, with an input image size of 512 x 512 in RGB.
 
-- [**[24.04] MobileNet-V4: The Legacy After Five Years**](https://docsaid.org/papers/cnns/lightweight/mobilenet-v4/)
+- [**[24.04] MobileNet-V4: The Legacy After Five Years**](https://docsaid.org/en/papers/lightweight/mobilenet-v4/)
 - [**huggingface/pytorch-image-models**](https://github.com/huggingface/pytorch-image-models)
 
 After testing, we found that at an input resolution of 512 x 512, the text size in the MRZ area is around 4 to 8 pixels. Reducing the resolution further leads to blurry text in the MRZ area, degrading recognition performance.
@@ -245,7 +245,7 @@ To better fuse multi-scale features, we introduced BiFPN. By allowing bidirectio
 
 In our ablation study, we tried removing this component and directly using the Backbone output feature maps, but training failed.
 
-- [**[19.11] EfficientDet: BiFPN Is the Key**](https://docsaid.org/papers/feature-fusion/bifpn/)
+- [**[19.11] EfficientDet: BiFPN Is the Key**](https://docsaid.org/en/papers/feature-fusion/bifpn/)
 
 ### Patchify
 
