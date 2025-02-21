@@ -5,6 +5,7 @@ import capybara as cb
 import numpy as np
 
 from .det import Inference as DetectionInference
+from .rec import Inference as RecognitionInference
 from .spotting import Inference as SpottingInference
 from .utils import replace_digits, replace_letters, replace_sex
 
@@ -33,6 +34,9 @@ class MRZScanner:
         self,
         model_type: ModelType = ModelType.spotting,
         model_cfg: str = None,
+        spotting_cfg: str = None,
+        detection_cfg: str = None,
+        recognition_cfg: str = None,
         backend: cb.Backend = cb.Backend.cpu,
         gpu_id: int = 0,
         **kwargs
@@ -41,9 +45,12 @@ class MRZScanner:
 
         Args:
             model_type (ModelType): Model type.
-            model_cfg (str): Model configuration.
+            model_cfg (str): Default model configuration (used when specific configs are not provided).
+            spotting_cfg (str): Spotting model configuration.
+            detection_cfg (str): Detection model configuration.
+            recognition_cfg (str): Recognition model configuration.
             backend (cb.Backend): Backend.
-            gpu_id (int): GPU Icb.
+            gpu_id (int): GPU ID.
             **kwargs: Additional keyword arguments.
 
         Raises:
@@ -55,37 +62,75 @@ class MRZScanner:
         self.recognizer = None
 
         self.model_type = ModelType.obj_to_enum(model_type)
+
+        # Assign model configurations with fallback to general model_cfg
+        spotting_cfg = spotting_cfg or model_cfg or '20240919'
+        detection_cfg = detection_cfg or model_cfg or '20250202'
+        recognition_cfg = recognition_cfg or model_cfg or '20250221'
+
         if self.model_type == ModelType.spotting:
-            model_cfg = '20240919' if model_cfg is None else model_cfg
-            valid_model_cfgs = list(SpottingInference.configs.keys())
-            if model_cfg not in valid_model_cfgs:
-                raise ValueError(
-                    f'Invalid model_cfg: {model_cfg}, '
-                    f'valid model_cfgs: {valid_model_cfgs}'
-                )
-            self.scanner = SpottingInference(
-                gpu_id=gpu_id,
-                backend=backend,
-                model_cfg=model_cfg,
-                **kwargs
-            )
+            self._init_spotting(spotting_cfg, gpu_id, backend, **kwargs)
         elif self.model_type == ModelType.detection:
-            det_cfg = '20250202' if model_cfg is None else model_cfg
-            valid_det_cfgs = list(DetectionInference.configs.keys())
-            if det_cfg not in valid_det_cfgs:
-                raise ValueError(
-                    f'Invalid model_cfg: {det_cfg}, '
-                    f'valid model_cfgs: {valid_det_cfgs}'
-                )
-            self.detector = DetectionInference(
-                gpu_id=gpu_id,
-                backend=backend,
-                model_cfg=det_cfg,
-                **kwargs
+            self._init_detection(detection_cfg, gpu_id, backend, **kwargs)
+        elif self.model_type == ModelType.recognition:
+            self._init_recognition(recognition_cfg, gpu_id, backend, **kwargs)
+        elif self.model_type == ModelType.two_stage:
+            self._init_detection(detection_cfg, gpu_id, backend, **kwargs)
+            self._init_recognition(recognition_cfg, gpu_id, backend, **kwargs)
+        else:
+            raise ValueError(
+                f'Invalid model_type: {model_type}, valid model_types: {list(ModelType)}'
             )
 
+    def _init_spotting(self, model_cfg, gpu_id, backend, **kwargs):
+        valid_model_cfgs = list(SpottingInference.configs.keys())
+        if model_cfg not in valid_model_cfgs:
+            raise ValueError(
+                f'Invalid spotting_cfg: {model_cfg}, valid configs: {valid_model_cfgs}'
+            )
+        self.scanner = SpottingInference(
+            gpu_id=gpu_id,
+            backend=backend,
+            model_cfg=model_cfg,
+            **kwargs
+        )
+
+    def _init_detection(self, model_cfg, gpu_id, backend, **kwargs):
+        valid_model_cfgs = list(DetectionInference.configs.keys())
+        if model_cfg not in valid_model_cfgs:
+            raise ValueError(
+                f'Invalid detection_cfg: {model_cfg}, valid configs: {valid_model_cfgs}'
+            )
+        self.detector = DetectionInference(
+            gpu_id=gpu_id,
+            backend=backend,
+            model_cfg=model_cfg,
+            **kwargs
+        )
+
+    def _init_recognition(self, model_cfg, gpu_id, backend, **kwargs):
+        valid_model_cfgs = list(RecognitionInference.configs.keys())
+        if model_cfg not in valid_model_cfgs:
+            raise ValueError(
+                f'Invalid recognition_cfg: {model_cfg}, valid configs: {valid_model_cfgs}'
+            )
+        self.recognizer = RecognitionInference(
+            gpu_id=gpu_id,
+            backend=backend,
+            model_cfg=model_cfg,
+            **kwargs
+        )
+
     def list_models(self) -> List[str]:
-        return list(self.scanner.configs.keys())
+        spotting_models = list(SpottingInference.configs.keys())
+        detection_models = list(DetectionInference.configs.keys())
+        recognition_models = list(RecognitionInference.configs.keys())
+        infos = {
+            'spotting': spotting_models,
+            'detection': detection_models,
+            'recognition': recognition_models
+        }
+        return infos
 
     def postprocess(self, results: np.ndarray) -> List[str]:
         if (doc_type := len(results)) not in [2, 3]:
@@ -100,21 +145,18 @@ class MRZScanner:
             doc_number = results[0][5:14]
             doc_number_hash = replace_letters(results[0][14])
             optional = results[0][15:30]
-            results[0] = \
-                f'{doc}{country}{doc_number}{doc_number_hash}{optional}'
+            results[0] = f'{doc}{country}{doc_number}{doc_number_hash}{optional}'
             # Line2
             birth_date = replace_letters(results[1][0:7])
             sex = replace_sex(results[1][7])
             expiry_date = replace_letters(results[1][8:15])
             nationality = replace_digits(results[1][15:18])
             optional = results[1][18:30]
-            results[1] = \
-                f'{birth_date}{sex}{expiry_date}{nationality}{optional}'
+            results[1] = f'{birth_date}{sex}{expiry_date}{nationality}{optional}'
             return results, ErrorCodes.NO_ERROR
 
         elif doc_type == 2:  # TD2 or TD3
-            if (len(results[0]) != 36 or len(results[1]) != 36) \
-                    and (len(results[0]) != 44 or len(results[1]) != 44):
+            if (len(results[0]) != 36 or len(results[1]) != 36) and (len(results[0]) != 44 or len(results[1]) != 44):
                 return [''], ErrorCodes.POSTPROCESS_FAILED_TD2_TD3_LENGTH
             # Line2
             doc_number = results[1][0:9]
@@ -124,8 +166,7 @@ class MRZScanner:
             sex = replace_sex(results[1][20])
             expiry_date = replace_letters(results[1][21:28])
             optional = results[1][28:]
-            results[1] = \
-                f'{doc_number}{doc_number_hash}{nationality}{birth_date}{sex}{expiry_date}{optional}'
+            results[1] = f'{doc_number}{doc_number_hash}{nationality}{birth_date}{sex}{expiry_date}{optional}'
             return results, ErrorCodes.NO_ERROR
 
     def __repr__(self) -> str:
@@ -156,13 +197,24 @@ class MRZScanner:
         if do_center_crop:
             img = cb.centercrop(img)
 
+        mrz_polygon, mrz_texts = None, None
         if self.model_type == ModelType.spotting:
-            result = self.scanner(img=img)
+            mrz_texts = self.scanner(img=img)
         elif self.model_type == ModelType.detection:
-            result = self.detector(img=img)
+            mrz_polygon = self.detector(img=img)
+        elif self.model_type == ModelType.recognition:
+            mrz_texts = self.recognizer(img=img)
+        elif self.model_type == ModelType.two_stage:
+            mrz_polygon = self.detector(img=img)
+            warp_img = cb.imwarp_quadrangle(img, mrz_polygon)
+            mrz_texts = self.recognizer(img=warp_img)
 
         msg = ErrorCodes.NO_ERROR
-        if do_postprocess and self.model_type == ModelType.spotting:
-            result, msg = self.postprocess(result)
+        if do_postprocess and self.model_type != ModelType.detection:
+            mrz_texts, msg = self.postprocess(mrz_texts)
 
-        return result, msg
+        return {
+            'mrz_polygon': mrz_polygon,
+            'mrz_texts': mrz_texts,
+            'msg': msg
+        }
