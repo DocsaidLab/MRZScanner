@@ -156,8 +156,11 @@ class MRZScanner:
             return results, ErrorCodes.NO_ERROR
 
         elif doc_type == 2:  # TD2 or TD3
-            if (len(results[0]) != 36 or len(results[1]) != 36) and (len(results[0]) != 44 or len(results[1]) != 44):
+
+            if not ((len(results[0]) == 36 and len(results[1]) == 36) or
+                    (len(results[0]) == 44 and len(results[1]) == 44)):
                 return [''], ErrorCodes.POSTPROCESS_FAILED_TD2_TD3_LENGTH
+
             # Line2
             doc_number = results[1][0:9]
             doc_number_hash = replace_letters(results[1][9])
