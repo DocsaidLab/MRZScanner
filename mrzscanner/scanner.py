@@ -32,7 +32,7 @@ class MRZScanner:
 
     def __init__(
         self,
-        model_type: ModelType = ModelType.spotting,
+        model_type: ModelType = ModelType.two_stage,
         model_cfg: str = None,
         spotting_cfg: str = None,
         detection_cfg: str = None,
