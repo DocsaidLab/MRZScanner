@@ -36,7 +36,7 @@ class Inference:
         model_path = self.root / cfg['model_path']
         if not cb.Path(model_path).exists():
             cb.download_from_google(
-                cfg['file_id'], model_path.name, str(model_path))
+                cfg['file_id'], model_path.name, str(DIR / 'ckpt'))
 
         self.model = cb.ONNXEngine(model_path, gpu_id, backend, **kwargs)
         self.input_key = list(self.model.input_infos.keys())[0]
