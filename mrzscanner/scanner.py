@@ -173,7 +173,18 @@ class MRZScanner:
             return results, ErrorCodes.NO_ERROR
 
     def __repr__(self) -> str:
-        return f'{self.scanner.__class__.__name__}({self.scanner.model})'
+        if self.model_type == ModelType.spotting and self.scanner:
+            return f'{self.scanner.__class__.__name__}(\n{self.scanner.model})'
+        elif self.model_type == ModelType.detection and self.detector:
+            return f'{self.detector.__class__.__name__}(\n{self.detector.model})'
+        elif self.model_type == ModelType.recognition and self.recognizer:
+            return f'{self.recognizer.__class__.__name__}(\n{self.recognizer.model})'
+        elif self.model_type == ModelType.two_stage and self.detector and self.recognizer:
+            return (
+                f'{self.detector.__class__.__name__}(\n{self.detector.model}) \n\n'
+                f'{self.recognizer.__class__.__name__}(\n{self.recognizer.model})'
+            )
+        return 'MRZScanner(Uninitialized or Invalid Model)'
 
     def __call__(
         self,
