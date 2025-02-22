@@ -23,7 +23,7 @@ def test_inference_init(fake_inference):
 def test_preprocess_padding_width_greater_than_height(fake_inference):
     # 模擬一張寬大於高的假圖 (H < W)
     img = np.zeros((100, 200, 3), dtype=np.uint8)
-    tensor_dict, (h, w), (shift_h, shift_w) = fake_inference.preprocess(img)
+    tensor_dict, (h, w), (shift_w, shift_h) = fake_inference.preprocess(img)
 
     # 檢查 key 是否正確
     assert fake_inference.input_key in tensor_dict
@@ -42,7 +42,7 @@ def test_preprocess_padding_width_greater_than_height(fake_inference):
 def test_preprocess_padding_height_greater_than_width(fake_inference):
     # 模擬一張高大於寬的假圖 (H > W)
     img = np.zeros((200, 100, 3), dtype=np.uint8)
-    tensor_dict, (h, w), (shift_h, shift_w) = fake_inference.preprocess(img)
+    tensor_dict, (h, w), (shift_w, shift_h) = fake_inference.preprocess(img)
 
     # 檢查 key 是否正確
     assert fake_inference.input_key in tensor_dict

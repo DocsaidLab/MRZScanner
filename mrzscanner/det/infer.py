@@ -57,7 +57,7 @@ class Inference:
         tensor = np.transpose(tensor, axes=(2, 0, 1)).astype('float32')
         tensor = tensor[None] / 255.0 if normalize else tensor[None]
 
-        return {self.input_key: tensor}, (img.shape[0], img.shape[1]), (padding[0], padding[2])
+        return {self.input_key: tensor}, (img.shape[0], img.shape[1]), (padding[2], padding[0])
 
     def postprocess(self, hmap: np.ndarray, img_size: Tuple[int, int], shift: Tuple[int, int]) -> np.ndarray:
         hmap = np.uint8(hmap * 255)
