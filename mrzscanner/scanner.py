@@ -65,7 +65,7 @@ class MRZScanner:
 
         # Assign model configurations with fallback to general model_cfg
         spotting_cfg = spotting_cfg or model_cfg or '20240919'
-        detection_cfg = detection_cfg or model_cfg or '20250202'
+        detection_cfg = detection_cfg or model_cfg or '20250222'
         recognition_cfg = recognition_cfg or model_cfg or '20250221'
 
         if self.model_type == ModelType.spotting:
@@ -190,7 +190,7 @@ class MRZScanner:
         self,
         img: np.ndarray,
         do_center_crop: bool = False,
-        do_postprocess: bool = True
+        do_postprocess: bool = False
     ) -> List[str]:
         """ Run MRZScanner.
 
@@ -209,7 +209,10 @@ class MRZScanner:
             return [''], ErrorCodes.INVALID_INPUT_FORMAT
 
         if do_center_crop:
+            ori_h, ori_w = img.shape[:2]
             img = cb.centercrop(img)
+            new_h, new_w = img.shape[:2]
+            shift = ((ori_w - new_w)//2, (ori_h - new_h)//2)
 
         mrz_polygon, mrz_texts = None, None
         if self.model_type == ModelType.spotting:
@@ -223,6 +226,7 @@ class MRZScanner:
             warp_img = cb.imwarp_quadrangle(img, mrz_polygon)
             mrz_texts = self.recognizer(img=warp_img)
 
+        mrz_polygon += shift
         msg = ErrorCodes.NO_ERROR
         if do_postprocess and self.model_type != ModelType.detection:
             mrz_texts, msg = self.postprocess(mrz_texts)
