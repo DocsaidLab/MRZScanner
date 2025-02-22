@@ -206,7 +206,11 @@ class MRZScanner:
             ErrorCodes: If invalid input format.
         """
         if not cb.is_numpy_img(img):
-            return [''], ErrorCodes.INVALID_INPUT_FORMAT
+            return {
+                'mrz_polygon': [],
+                'mrz_texts': [''],
+                'msg': ErrorCodes.INVALID_INPUT_FORMAT
+            }
 
         if do_center_crop:
             ori_h, ori_w = img.shape[:2]
@@ -226,7 +230,9 @@ class MRZScanner:
             warp_img = cb.imwarp_quadrangle(img, mrz_polygon)
             mrz_texts = self.recognizer(img=warp_img)
 
-        mrz_polygon += shift
+        if do_center_crop:
+            mrz_polygon += shift
+
         msg = ErrorCodes.NO_ERROR
         if do_postprocess and self.model_type != ModelType.detection:
             mrz_texts, msg = self.postprocess(mrz_texts)
