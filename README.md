@@ -95,14 +95,27 @@ img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mr
 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
 # inference
-result_mrz, error_msg = model(img)
+result = model(img, do_center_crop=True, do_postprocess=False)
 
-# Output MRZ block text and error message
-print(result_mrz)
-# >>> ('PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
-#     'C946302620AZE6707297F23031072W12IMJ<<<<<<<40')
-print(error_msg)
-# >>> <ErrorCodes.NO_ERROR: 'No error.'>
+# output
+print(result)
+# {
+#     'mrz_polygon':
+#         array(
+#             [
+#                 [ 158.536 , 1916.3734],
+#                 [1682.7792, 1976.1683],
+#                 [1677.1018, 2120.8926],
+#                 [ 152.8586, 2061.0977]
+#             ],
+#             dtype=float32
+#         ),
+#     'mrz_texts': [
+#         'PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#         'C946302620AZE6707297F23031072W12IMJ<<<<<<<40'
+#     ],
+#     'msg': <ErrorCodes.NO_ERROR: 'No error.'>
+# }
 ```
 
 > [!TIP]
