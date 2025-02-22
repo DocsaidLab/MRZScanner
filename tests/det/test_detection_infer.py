@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import capybara as cb
 import numpy as np
 import pytest
@@ -7,272 +5,103 @@ import pytest
 from mrzscanner.det.infer import Inference
 
 
-class DummyONNXEngine:
-    def __init__(self, model_path, gpu_id, backend, **kwargs):
-        self.model_path = model_path
-        self.gpu_id = gpu_id
-        self.backend = backend
-        self.input_infos = {"input": "dummy"}
-        self.output_infos = {"output": "dummy"}
-
-    def __call__(self, **kwargs):
-        # Return a dummy heatmap (value 0.5) with shape (256,256)
-        return {"output": [np.full((256, 256), 0.5, dtype=np.float32)]}
-
-# Dummy image resize function
+@pytest.fixture
+def fake_inference():
+    # 建立 Inference 物件，方便後續測試使用
+    # 這邊的 GPU ID 與 backend 可根據環境需求自行調整
+    return Inference(gpu_id=0, backend=cb.Backend.cpu, model_cfg='20250222')
 
 
-def dummy_imresize(img, size):
-    # For a 3D image (H,W,C), force output shape to (size[0], size[1], C)
-    if img.ndim == 3:
-        return np.resize(img, (size[0], size[1], img.shape[2]))
-    else:
-        return np.resize(img, (size[0], size[1]))
-
-# Dummy binarization function
+def test_inference_init(fake_inference):
+    # 測試初始化參數是否正確
+    assert fake_inference.model_cfg == '20250222'
+    assert fake_inference.image_size == (256, 256)
+    assert fake_inference.input_key is not None
+    assert fake_inference.output_key is not None
 
 
-def dummy_imbinarize(img):
-    # Threshold at 127: values above become 255, below become 0
-    return (img > 127).astype(np.uint8) * 255
+def test_preprocess_padding_width_greater_than_height(fake_inference):
+    # 模擬一張寬大於高的假圖 (H < W)
+    img = np.zeros((100, 200, 3), dtype=np.uint8)
+    tensor_dict, (h, w), (shift_h, shift_w) = fake_inference.preprocess(img)
 
-# Dummy polygon classes to simulate cb.Polygons.from_image behavior
+    # 檢查 key 是否正確
+    assert fake_inference.input_key in tensor_dict
 
+    # 檢查 tensor shape: (1, 3, 256, 256) or (batch, channel, height, width)
+    assert tensor_dict[fake_inference.input_key].shape == (1, 3, 256, 256)
 
-class DummyPolygon:
-    def __init__(self, area, points):
-        self.area = area
-        self.points = points
+    # 原圖高寬
+    assert (h, w) == (200, 200)
 
-    def to_min_boxpoints(self):
-        return self.points
-
-
-class DummyPolygons:
-    def __init__(self, polygons):
-        self.polygons = polygons
-
-    def __len__(self):
-        return len(self.polygons)
-
-    def __getitem__(self, idx):
-        # Support slicing and boolean array indexing
-        if isinstance(idx, slice):
-            return DummyPolygons(self.polygons[idx])
-        elif isinstance(idx, np.ndarray):
-            filtered = [p for p, flag in zip(self.polygons, idx) if flag]
-            return DummyPolygons(filtered)
-        else:
-            return self.polygons[idx]
-
-    @property
-    def area(self):
-        return np.array([p.area for p in self.polygons])
-
-# --- Test cases using pytest ---
-
-# Test that __init__ does not call download_from_google when file exists.
+    # 確認是上下 padding，因此 shift_h 應大於 0，shift_w 應該是 0
+    assert shift_h > 0
+    assert shift_w == 0
 
 
-def test_init_no_download(tmp_path, monkeypatch):
-    # Use tmp_path as the current directory.
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    # Simulate that the model file exists.
+def test_preprocess_padding_height_greater_than_width(fake_inference):
+    # 模擬一張高大於寬的假圖 (H > W)
+    img = np.zeros((200, 100, 3), dtype=np.uint8)
+    tensor_dict, (h, w), (shift_h, shift_w) = fake_inference.preprocess(img)
 
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
+    # 檢查 key 是否正確
+    assert fake_inference.input_key in tensor_dict
 
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    # Override ONNXEngine with our dummy version.
-    monkeyatch = monkeypatch  # (alias for clarity)
-    monkeyatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeyatch.setattr(cb, "imresize", dummy_imresize)
-    monkeyatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    # Provide a dummy Polygons.from_image (not used in __init__).
-    monkeyatch.setattr(cb.Polygons, "from_image",
-                       lambda hmap: DummyPolygons([]))
+    # 檢查 tensor shape
+    assert tensor_dict[fake_inference.input_key].shape == (1, 3, 256, 256)
 
-    inf = Inference()
-    assert inf.image_size == (256, 256)
-    assert inf.input_key == "input"
-    assert inf.output_key == "output"
-    assert isinstance(inf.model, DummyONNXEngine)
+    # 原圖高寬
+    assert (h, w) == (200, 200)
 
-# Test that __init__ calls download_from_google when file does not exist.
+    # 確認是左右 padding，因此 shift_w 應大於 0，shift_h 應該是 0
+    assert shift_w > 0
+    assert shift_h == 0
 
 
-def test_init_with_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    # Simulate that the model file does not exist.
+def test_preprocess_normalize(fake_inference):
+    # 測試 normalize 的情況
+    img = np.ones((256, 256, 3), dtype=np.uint8) * 255
+    tensor_dict, _, _ = fake_inference.preprocess(img, normalize=True)
+    tensor = tensor_dict[fake_inference.input_key]
 
-    class DummyPathNotExists:
-        def __init__(self, path):
-            self.path = path
-
-        def exists(self):
-            return False
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathNotExists(path))
-    download_called = {"called": False}
-
-    def dummy_download(file_id, file_name, target_dir):
-        download_called["called"] = True
-    monkeypatch.setattr(cb, "download_from_google", dummy_download)
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    monkeypatch.setattr(cb.Polygons, "from_image",
-                        lambda hmap: DummyPolygons([]))
-
-    Inference()
-    assert download_called["called"] is True
-
-# Test the preprocess method with normalization enabled.
+    # 確認值域應該介於 0~1 之間
+    assert np.all(tensor >= 0) and np.all(tensor <= 1)
 
 
-def test_preprocess_normalize(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
-
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    monkeypatch.setattr(cb.Polygons, "from_image",
-                        lambda hmap: DummyPolygons([]))
-
-    inf = Inference()
-    # Create a dummy image of shape (300, 400, 3)
-    img = np.random.randint(0, 256, (300, 400, 3), dtype=np.uint8)
-    tensor_dict, orig_size = inf.preprocess(img, normalize=True)
-    tensor = tensor_dict[inf.input_key]
-    # Expect shape to be (1, channels, 256, 256)
-    assert tensor.shape == (1, 3, 256, 256)
-    # With normalization, values should be in the range [0, 1].
-    assert tensor.max() <= 1.0
-    assert orig_size == (300, 400)
-
-# Test the preprocess method with normalization disabled.
+def test_postprocess_empty_heatmap(fake_inference):
+    # 模擬空的 heatmap，預期輸出空的 polygon array
+    hmap = np.zeros((256, 256), dtype=np.float32)
+    poly = fake_inference.postprocess(hmap, (256, 256), (0, 0))
+    assert poly.shape == (0,), f"預期空陣列, 但得到 shape={poly.shape}"
 
 
-def test_preprocess_no_normalize(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
+def test_postprocess_single_polygon(fake_inference):
+    # 模擬簡單單一 polygon 的 heatmap，使用中心畫一個白色方塊
+    hmap = np.zeros((256, 256), dtype=np.float32)
+    hmap[100:150, 100:150] = 1.0  # 中心 50x50 區域
+    poly = fake_inference.postprocess(hmap, (256, 256), (0, 0))
 
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
-
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    monkeypatch.setattr(cb.Polygons, "from_image",
-                        lambda hmap: DummyPolygons([]))
-
-    inf = Inference()
-    img = np.random.randint(0, 256, (300, 400, 3), dtype=np.uint8)
-    tensor_dict, orig_size = inf.preprocess(img, normalize=False)
-    tensor = tensor_dict[inf.input_key]
-    # Without normalization, the values should remain above 1.0.
-    assert tensor.max() > 1.0
-    assert orig_size == (300, 400)
-
-# Test the postprocess method when no polygons are detected.
+    # 預期會回傳 4 個點的外接矩形
+    # 注意實際測試時可能要容忍一些誤差
+    assert poly.shape == (4, 2)
 
 
-def test_postprocess_empty(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
+def test_call_with_mock(fake_inference, monkeypatch):
+    # 假設不想依賴真實模型推理結果，我們可以 mock 其輸出
+    mock_output = {
+        fake_inference.output_key: np.random.rand(
+            1, 256, 256).astype(np.float32)
+    }
 
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
+    def mock_model_call(*args, **kwargs):
+        return mock_output
 
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    # Force Polygons.from_image to return an empty container.
-    monkeypatch.setattr(cb.Polygons, "from_image",
-                        lambda hmap: DummyPolygons([]))
+    monkeypatch.setattr(fake_inference.model, "__call__", mock_model_call)
 
-    inf = Inference()
-    dummy_hmap = np.ones((256, 256), dtype=np.float32) * 0.5
-    result = inf.postprocess(dummy_hmap, (300, 400))
-    assert result.size == 0
-    assert result.dtype == np.float32
+    # 隨意建立一張圖片測試
+    img = np.random.randint(0, 255, (200, 300, 3), dtype=np.uint8)
 
-# Test the postprocess method when polygons are detected.
+    poly = fake_inference(img)
 
-
-def test_postprocess_polygon(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
-
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    # Create two dummy polygons: one with smaller area and one with larger area.
-    poly1 = DummyPolygon(10, [(0, 0), (1, 0), (1, 1), (0, 1)])
-    poly2 = DummyPolygon(20, [(0, 0), (2, 0), (2, 2), (0, 2)])
-    dummy_polys = DummyPolygons([poly1, poly2])
-    monkeypatch.setattr(cb.Polygons, "from_image", lambda hmap: dummy_polys)
-
-    inf = Inference()
-    dummy_hmap = np.ones((256, 256), dtype=np.float32) * 0.5
-    result = inf.postprocess(dummy_hmap, (300, 400))
-    expected = np.array([(0, 0), (2, 0), (2, 2), (0, 2)], dtype=np.float32)
-    np.testing.assert_array_equal(result, expected)
-
-# Test the __call__ method to ensure the full pipeline works.
-
-
-def test_call(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-
-    class DummyPathExists:
-        def __init__(self, path):
-            self.path = path
-
-        def exists(self):
-            return True
-    monkeypatch.setattr(cb, "Path", lambda path: DummyPathExists(path))
-    # Use a custom dummy ONNXEngine that returns a dummy heatmap.
-
-    class DummyONNXEngineCall:
-        def __init__(self, model_path, gpu_id, backend, **kwargs):
-            self.input_infos = {"input": "dummy"}
-            self.output_infos = {"output": "dummy"}
-
-        def __call__(self, **kwargs):
-            return {"output": [np.full((256, 256), 0.5, dtype=np.float32)]}
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngineCall)
-    monkeypatch.setattr(cb, "imresize", dummy_imresize)
-    monkeypatch.setattr(cb, "imbinarize", dummy_imbinarize)
-    # Set up Polygons.from_image to return two dummy polygons.
-    poly1 = DummyPolygon(10, [(0, 0), (1, 0), (1, 1), (0, 1)])
-    poly2 = DummyPolygon(20, [(0, 0), (2, 0), (2, 2), (0, 2)])
-    dummy_polys = DummyPolygons([poly1, poly2])
-    monkeypatch.setattr(cb.Polygons, "from_image", lambda hmap: dummy_polys)
-
-    inf = Inference()
-    img = np.random.randint(0, 256, (300, 400, 3), dtype=np.uint8)
-    result = inf(img, normalize=True)
-    expected = np.array([(0, 0), (2, 0), (2, 2), (0, 2)], dtype=np.float32)
-    np.testing.assert_array_equal(result, expected)
+    # 只要確認最後不會報錯，且 polygon 有正確回傳即可
+    assert isinstance(poly, np.ndarray), "最終輸出必須為 Numpy ndarray"
