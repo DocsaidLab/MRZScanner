@@ -224,7 +224,7 @@ class MRZScanner:
             warp_img = cb.imwarp_quadrangle(img, mrz_polygon)
             mrz_texts = self.recognizer(img=warp_img)
 
-        if do_center_crop:
+        if mrz_polygon is not None and do_center_crop:
             mrz_polygon += shift
 
         msg = ErrorCodes.NO_ERROR
