@@ -33,10 +33,9 @@ class MRZScanner:
     def __init__(
         self,
         model_type: ModelType = ModelType.two_stage,
-        model_cfg: str = None,
-        spotting_cfg: str = None,
-        detection_cfg: str = None,
-        recognition_cfg: str = None,
+        spotting_cfg: str = '20240919',
+        detection_cfg: str = '20250222',
+        recognition_cfg: str = '20250221',
         backend: cb.Backend = cb.Backend.cpu,
         gpu_id: int = 0,
         **kwargs
@@ -62,11 +61,6 @@ class MRZScanner:
         self.recognizer = None
 
         self.model_type = ModelType.obj_to_enum(model_type)
-
-        # Assign model configurations with fallback to general model_cfg
-        spotting_cfg = spotting_cfg or model_cfg or '20240919'
-        detection_cfg = detection_cfg or model_cfg or '20250222'
-        recognition_cfg = recognition_cfg or model_cfg or '20250221'
 
         if self.model_type == ModelType.spotting:
             self._init_spotting(spotting_cfg, gpu_id, backend, **kwargs)
