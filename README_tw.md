@@ -1,4 +1,4 @@
-**[English](./README.md)** | [中文](./README_tw.md)
+[English](./README.md) | [**中文**](./README_tw.md)
 
 # MRZScanner
 
@@ -26,9 +26,7 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 
 ## 技術文件
 
-由於本專案的相關使用方式和設定的說明佔據非常多的篇幅，因此我們謹摘要「模型設計」的部分放在這裡。
-
-套件安裝和使用的方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/mrzscanner/)。
+完整說明內容和模型使用方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/mrzscanner/)。
 
 ## 安裝
 
@@ -77,27 +75,24 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 
 ## 模型推論
 
-> [!TIP]
-> 我們有設計了自動下載模型的功能，當程式檢查你缺少模型時，會自動連接到我們的伺服器進行下載。
-
-以下是一個簡單的範例：
+首先，什麼都別管，跑跑看以下程式碼，看一下能不能完整執行：
 
 ```python
 import cv2
 from skimage import io
 from mrzscanner import MRZScanner
 
-# build model
+# 建立模型
 model = MRZScanner()
 
-# read image
+# 讀取線上影像
 img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-# inference
+# 模型推論
 result = model(img, do_center_crop=True, do_postprocess=False)
 
-# output
+# 輸出結果
 print(result)
 # {
 #     'mrz_polygon':
@@ -118,18 +113,387 @@ print(result)
 # }
 ```
 
+成功執行後，我們往下看一下程式碼的細節。
+
 > [!TIP]
 > MRZScanner 已經用 `__call__` 進行了封裝，因此你可以直接呼叫實例進行推論。
 
+> [!NOTE]
+> 我們有設計了自動下載模型的功能，當程式檢查你缺少模型時，會自動連接到我們的伺服器進行下載。
+
+## 使用 `do_center_crop` 參數
+
+這張影像應該是與行動裝置拍攝的，形狀偏狹長，如果直接給模型推論的話，會造成過多的文字形變。所以我們在推論的時候加入了 `do_center_crop` 參數，這個參數是用來對圖片進行中心裁剪。
+
+這個參數預設為 `False`，因為我們認為在未經過使用者的認知下，不應該對圖片進行任何的修改。但是在實際應用中，我們遇到的圖像往往並非標準的正方形尺寸。
+
+實際上，圖像的尺寸和比例多種多樣，例如：
+
+- 手機拍攝的照片普遍採用 9:16 的寬高比；
+- 掃描的文件常見於 A4 的紙張比例；
+- 網頁截圖大多是 16:9 的寬高比；
+- 透過 webcam 拍攝的圖片，則通常是 4:3 的比例。
+
+這些非正方形的圖像，在不經過適當處理直接進行推論時，往往會包含大量的無關區域或空白，從而對模型的推論效果產生不利影響。進行中心裁剪能夠有效減少這些無關區域，專注於圖像的中心區域，從而提高推論的準確性和效率。
+
+使用方式如下：
+
+```python
+from mrzscanner import MRZScanner
+
+model = MRZScanner()
+
+result = model(img, do_center_crop=True) # 使用中心裁剪
+```
+
+## 使用 `do_postprocess` 參數
+
+除了中心裁剪外，我們還提供了一個後處理的選項 `do_postprocess`，用於進一步提高模型的準確性。
+
+這個參數預設同樣是 `False`，原因和剛才一樣，我們認為在未經過使用者的認知下，不應該對辨識結果進行任何的修改。
+
+在實際應用中，MRZ 區塊中存在一些規則，例如：國家代碼只能為大寫英文字母、性別只有 `M` 和 `F` 以及跟日期有關的欄位只能是數字等。這些規則都可以用來規範 MRZ 區塊。
+
+因此我們針對可以規範的區塊進行人工校正，以下實作校正概念的程式碼片段，在不可能出現數字的欄位中，把可能誤判的數字替換成正確的字元：
+
+```python
+import re
+
+def replace_digits(text: str):
+    text = re.sub('0', 'O', text)
+    text = re.sub('1', 'I', text)
+    text = re.sub('2', 'Z', text)
+    text = re.sub('4', 'A', text)
+    text = re.sub('5', 'S', text)
+    text = re.sub('8', 'B', text)
+    return text
+
+if doc_type == 3:  # TD1
+    if len(results[0]) != 30 or len(results[1]) != 30 or len(results[2]) != 30:
+        return [''], ErrorCodes.POSTPROCESS_FAILED_TD1_LENGTH
+    # Line1
+    doc = results[0][0:2]
+    country = replace_digits(results[0][2:5])
+```
+
+雖然在我們的專案中，這個後處理沒有幫我們提高更多的準確度，但保留這個功能還是可以在某些情況下把錯誤的辨識結果修正回來。
+
+你可以考慮推論的時候把 `do_postprocess` 設為 `True`，通常結果會更好：
+
+```python
+result = model(img, do_postprocess=True)
+```
+
+又或是你更喜歡看到原始的模型輸出結果，那就用預設值即可。
+
+## 進階設定
+
+調用 `MRZScanner` 模型時，你可以透過傳遞參數來進行進階設定。
+
+### Initialization
+
+以下是在初始化階段的進階設定選項：
+
+- **Backend**
+
+  Backend 是一個列舉類型，用於指定 `MRZScanner` 的運算後端。
+
+  它包含以下選項：
+
+  - **cpu**：使用 CPU 進行運算。
+  - **cuda**：使用 GPU 進行運算（需要適當的硬體支援）。
+
+  ```python
+  from capybara import Backend
+
+  model = MRZScanner(backend=Backend.cuda) # 使用 CUDA 後端
+  #
+  # 或是
+  #
+  model = MRZScanner(backend=Backend.cpu) # 使用 CPU 後端
+  ```
+
+  我們是使用 ONNXRuntime 作為模型的推論引擎，雖然 ONNXRuntime 支援了多種後端引擎（包括 CPU、CUDA、OpenCL、DirectX、TensorRT 等等），但限於平常使用的環境，我們稍微做了一點封裝，目前只提供了 CPU 和 CUDA 兩種後端引擎。此外，使用 cuda 運算除了需要適當的硬體支援外，還需要安裝相應的 CUDA 驅動程式和 CUDA 工具包。
+
+  如果你的系統中沒有安裝 CUDA，或安裝的版本不正確，則無法使用 CUDA 運算後端。
+
+- **ModelType**
+
+  ModelType 是一個列舉類型，用於指定 `MRZScanner` 使用的模型類型。
+
+  目前包含以下選項：
+
+  - **spotting**：使用端到端的模型架構，僅會載入一個模型。
+  - **two_stage**：使用二階段的模型架構，會載入兩個模型。
+  - **detection**：僅載入 MRZ 的偵測模型。
+  - **recognition**：僅載入 MRZ 的辨識模型。
+
+  你可以透過 `model_type` 參數來指定使用的模型。
+
+  ```python
+  from mrzscanner import MRZScanner
+
+  model = MRZScanner(model_type=MRZScanner.spotting)
+  ```
+
+- **ModelCfg**
+
+  你可以透過 `list_models` 來查看所有可用的模型。
+
+  ```python
+  from mrzscanner import MRZScanner
+
+  print(MRZScanner().list_models())
+  # {
+  #    'spotting': ['20240919'],
+  #    'detection': ['20250222'],
+  #    'recognition': ['20250221']
+  # }
+  ```
+
+  選定你要的版本，並透過 `spotting_cfg`、`detection_cfg`、`recognition_cfg` 等參數，搭配 `ModelType` 來指定使用的模型。
+
+  1.  **spotting**：
+
+      ```python
+      model = MRZScanner(
+         model_type=ModelType.spotting,
+         spotting_cfg='20240919'
+      )
+      ```
+
+  2.  **two_stage**：
+
+      ```python
+      model = MRZScanner(
+         model_type=ModelType.two_stage,
+         detection_cfg='20250222',
+         recognition_cfg='20250221'
+      )
+      ```
+
+  3.  **detection**：
+
+      ```python
+      model = MRZScanner(
+         model_type=ModelType.detection,
+         detection_cfg='20250222'
+      )
+      ```
+
+  4.  **recognition**：
+
+      ```python
+      model = MRZScanner(
+         model_type=ModelType.recognition,
+         recognition_cfg='20250221'
+      )
+      ```
+
+  你也可以完全不指定，反正我們都有配置每個模型的預設版本。
+
+### ModelType.spotting
+
+這個模型是端到端的模型，會直接偵測 MRZ 的位置並進行辨識，缺點是準確度較低，而且不會回傳 MRZ 的座標。
+
+使用範例如下：
+
+```python
+import cv2
+from skimage import io
+from mrzscanner import MRZScanner, ModelType
+
+# 建立模型
+model = MRZScanner(
+   model_type=ModelType.spotting,
+   spotting_cfg='20240919'
+)
+
+# 讀取線上影像
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+# 模型推論
+result = model(img, do_center_crop=True, do_postprocess=False)
+
+# 輸出結果
+print(result)
+# {
+#    'mrz_polygon': None,
+#    'mrz_texts': [
+#        'PCAZEQAOARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#        'C946302620AZE6707297F23031072W12IMJ<<<<<<<40'
+#    ],
+#    'msg': <ErrorCodes.NO_ERROR: 'No error.'>
+# }
+```
+
+### ModelType.two_stage
+
+這個模型是二階段的模型，會先偵測 MRZ 的位置，再進行辨識，優點是準確度較高，而且會回傳 MRZ 的座標。
+
+使用範例如下，最後我們還能畫出 MRZ 的位置：
+
+```python
+import cv2
+from skimage import io
+from mrzscanner import MRZScanner, ModelType
+
+# 建立模型
+model = MRZScanner(
+   model_type=ModelType.two_stage,
+   detection_cfg='20250222',
+   recognition_cfg='20250221'
+)
+
+# 讀取線上影像
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+# 模型推論
+result = model(img, do_center_crop=True, do_postprocess=False)
+
+# 輸出結果
+print(result)
+# {
+#     'mrz_polygon':
+#         array(
+#             [
+#                 [ 158.536 , 1916.3734],
+#                 [1682.7792, 1976.1683],
+#                 [1677.1018, 2120.8926],
+#                 [ 152.8586, 2061.0977]
+#             ],
+#             dtype=float32
+#         ),
+#     'mrz_texts': [
+#         'PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#         'C946302620AZE6707297F23031072W12IMJ<<<<<<<40'
+#     ],
+#     'msg': <ErrorCodes.NO_ERROR: 'No error.'>
+# }
+
+# 畫出 MRZ 的位置
+from capybara import draw_polygon, imwrite, centercrop
+
+poly_img = draw_polygon(img, result['mrz_polygon'], color=(0, 0, 255), thickness=5)
+imwrite(centercrop(poly_img))
+```
+
+<div align="center">
+   <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/demo_two_stage.jpg?raw=true" width="60%">
+</div>
+
+### ModelType.detection
+
+這個模型僅會偵測 MRZ 的位置，不會進行辨識。
+
+使用範例如下：
+
+```python
+import cv2
+from skimage import io
+from mrzscanner import MRZScanner, ModelType
+
+# 建立模型
+model = MRZScanner(
+   model_type=ModelType.detection,
+   detection_cfg='20250222',
+)
+
+# 讀取線上影像
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+# 模型推論
+result = model(img, do_center_crop=True)
+
+# 輸出結果
+print(result)
+# {
+#     'mrz_polygon':
+#         array(
+#             [
+#                 [ 158.536 , 1916.3734],
+#                 [1682.7792, 1976.1683],
+#                 [1677.1018, 2120.8926],
+#                 [ 152.8586, 2061.0977]
+#             ],
+#             dtype=float32
+#         ),
+#     'mrz_texts': None,
+#     'msg': <ErrorCodes.NO_ERROR: 'No error.'>
+# }
+```
+
+這裡 MRZ 定位的結果和剛才一樣，我們就不再重複畫出來了。
+
+### ModelType.recognition
+
+這個模型僅會進行 MRZ 的辨識，不會偵測 MRZ 的位置。
+
+要執行這個模型，你得先準備好 MRZ 裁切後的影像，並且將其傳入模型。
+
+我們先準備一下 MRZ 裁切後的影像，直接取用剛才定位的座標：
+
+```python
+import numpy as np
+from skimage import io
+from capybara import imwarp_quadrangle, imwrite
+
+polygon = np.array([
+    [ 158.536 , 1916.3734],
+    [1682.7792, 1976.1683],
+    [1677.1018, 2120.8926],
+    [ 152.8586, 2061.0977]
+], dtype=np.float32)
+
+img = io.imread('https://github.com/DocsaidLab/MRZScanner/blob/main/docs/test_mrz.jpg?raw=true')
+img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+mrz_img = imwarp_quadrangle(img, polygon)
+imwrite(mrz_img)
+```
+
+執行上面程式後，我們可以取出 MRZ 裁切後的影像：
+
+<div align="center">
+   <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/demo_recognition_warp.jpg?raw=true" width="90%">
+</div>
+
+有了影像之後，我們就可以單獨執行辨識模型：
+
+```python
+from mrzscanner import MRZScanner, ModelType
+
+# 建立模型
+model = MRZScanner(
+   model_type=ModelType.recognition,
+   recognition_cfg='20250221'
+)
+
+# 輸入 MRZ 裁切後的影像
+result = model(mrz_img, do_center_crop=False)
+
+
+# 輸出結果
+print(result)
+# {
+#     'mrz_polygon':None,
+#     'mrz_texts': [
+#         'PCAZEQAQARIN<<FIDAN<<<<<<<<<<<<<<<<<<<<<<<<<',
+#         'C946302620AZE6707297F23031072W12IMJ<<<<<<<40'
+#     ],
+#     'msg': <ErrorCodes.NO_ERROR: 'No error.'>
+# }
+```
+
+> [!WARNING]
+> 要注意這裡的參數設定是 `do_center_crop=False`，因為我們已經裁切好了。
+
 ## 模型設計
 
-測試階段，我們先開放端到端的一階段模型。
-
-拆分定位和辨識的二階段模型現在沒有開放，預計之後發佈在 V1.0 穩定版。
-
-但不妨礙我們來討論一下具體做法。
-
-## 二階段辨識模型
+### 二階段辨識模型
 
 二階段模型指的是將 MRZ 辨識分為兩個階段：定位與辨識。
 
@@ -142,7 +506,7 @@ MRZ 區域的定位大概可以分成兩個方向:
 1. **定位 MRZ 區域角點：**
 
     <div align="center">
-      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img2.jpg?raw=true" width="80%">
+      <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img2.jpg?raw=true" width="50%">
     </div>
 
    這和之前我們做過的文件定位的專案類似，只是這裡把文件換成 MRZ 區域。
@@ -156,7 +520,7 @@ MRZ 區域的定位大概可以分成兩個方向:
 2. **分割 MRZ 區域：**
 
     <div align="center">
-        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img3.jpg?raw=true" width="80%">
+        <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img3.jpg?raw=true" width="50%">
     </div>
 
    這個方法就比較穩定了，因為我們可以直接用分割模型去預測 MRZ 區域的範圍。MRZ 區域上的文字也是真實存在於圖面上，不需要模型做「多餘」的臆測。這樣一來，我們就可以直接將 MRZ 區域分割出來，不需要再去擔心角點的問題。
@@ -177,6 +541,8 @@ MRZ 區域的定位大概可以分成兩個方向:
 
 ![Log-Cosh Dice Loss](https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img4.jpg?raw=true)
 
+在我們的實驗中，單純使用 `Log-Cosh Dice Loss` 的效果差強人意，最後還要搭配像素分類損失 `CrossEntropyLoss` 以及像素回歸損失 `SmoothL1Loss` 來進行訓練。
+
 ### 辨識模型
 
 辨識模型就比較簡單了，因為我們已經將 MRZ 區域分割出來，只需要將這個區域丟進文字辨識模型，就可以得到最終的結果。
@@ -189,6 +555,8 @@ MRZ 區域的定位大概可以分成兩個方向:
 
    辨識模型需要處理的就是將一串文字影像轉成文字輸出，可以用的方法有很多，例如早期流行的 CRNN+CTC，或是現在比較流行的 CLIP4STR 之類的。
 
+   這個方法有很多缺點，例如 MRZ 區域還分成兩行或三行因此需要增加判定邏輯，或是某些證件的 MRZ 間距窄小，導致文字難以區分等問題。
+
 2. **整張 MRZ 裁切影像一起辨識：**
 
    由於 MRZ 區域的長寬比例差距不大，所以我們完全可以將整張 MRZ 區域裁切下來，然後一次辨識整張影像。這種情況下，特別適合使用 Transformer 的模型來解決這個問題。
@@ -199,13 +567,15 @@ MRZ 區域的定位大概可以分成兩個方向:
       <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img6.jpg?raw=true" width="80%">
     </div>
 
-   由於自注意力機制的關係，因此可能會有多個 Token 同時指向同一個文字的情況，這時候如果使用一般的解碼方式，可能會讓模型感到困惑：明明就是這個文字的影像，為什麼要解碼成另外一個文字？
+   由於自注意力機制的關係，因此可能會有多個 Token 同時指向同一個文字的情況，這時候如果使用一般的解碼方式，可能會讓模型感到困惑：
+
+   > 明明就是這個文字的影像，為什麼要解碼成另外一個文字？
 
    這裡使用 CTC 的方式進行文字解碼的效果會比較好，因為每個 Token 都來自於「某個」文字區域的影像，我們只需要在最後階段對輸出結果合併，就可以得到最終的文字結果。
 
    ***
 
-   或是你不喜歡 CTC，覺得那是個麻煩的東西，那你可以採用 Encoder-Decoder 的架構，模型設計可以是這樣：
+   當然，考慮到你不喜歡 CTC，覺得那是個麻煩的東西，那你可以採用 Encoder-Decoder 的架構，模型設計可以是這樣：
 
     <div align="center">
       <img src="https://github.com/DocsaidLab/MRZScanner/raw/main/docs/img7.jpg?raw=true" width="80%">
@@ -213,11 +583,13 @@ MRZ 區域的定位大概可以分成兩個方向:
 
    這種方式可以直接解碼字串，不需要再經過一層 CTC，因為輸入 Decoder 的 token 就是對文字的查詢，每個 token 都負責找出對應順序的文字。
 
-   這裡的 Decoder 可以直接平行輸出，不需要用自回歸的方式。使用自回歸是因為我們需要基於前一次的預測結果，來進行下一個預測。
+   這裡的 Decoder 可以直接平行輸出，不需要用自回歸的方式。
 
-   這裡顯然並不需要這種操作。
+   仔細想想，我們使用自回歸的原因是因為我們需要「基於前一次的預測結果，來進行下一個預測」，但是在這裡顯然並不需要這種操作。
 
-   試想：不論第一個位置預測的文字是什麼，都不會影響第二個位置的預測結果，他們彼此之間是獨立的。所有客觀結果都已經在 Encoder 的輸出結果內，Decoder 的工作就是負責把他們查詢出來而已。
+   因為每個 MRZ 的文字都是獨立的，不論第一個位置預測的文字是什麼，都不會影響第二個位置的預測結果。所有客觀結果都已經在 Encoder 的輸出結果內，Decoder 的工作就是負責把他們查詢出來而已。
+
+   當然，光說不練是不行的，我們也有實際測試過平行輸出和自回歸的訓練方式，結果是平行輸出的方式收斂速度更快，跑分更高，泛化能力也更好。
 
 ### 誤差傳播
 
@@ -376,7 +748,7 @@ Transformer decoder 的部分，我們給的基本設定是這樣：
 
 我們感謝所有走在前面的人，他們的工作對我們的研究有莫大的幫助。
 
-如果您認為我們的工作對您有幫助，請引用我們的工作：
+如果你認為我們的工作對你有幫助，請引用我們的工作：
 
 ```bibtex
 @misc{yuan2024mrzscanner,
