@@ -28,6 +28,16 @@ MRZ（Machine Readable Zone，機器可讀區）指護照、簽證、身分證�
 
 完整說明內容和模型使用方式，請參閱 [**MRZScanner Documents**](https://docsaid.org/docs/mrzscanner/)。
 
+## 模型測試
+
+我們提供網頁版的模型測試，可以初步測試模型的效果。
+
+- [**MRZScanner Web Demo**](https://docsaid.org/playground/mrzscanner-demo)
+
+若你有客製化的需求，歡迎來信與我們討論：
+
+- **docsaidlab@gmail.com**
+
 ## 安裝
 
 ### 透過 PyPI 安裝

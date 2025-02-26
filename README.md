@@ -28,6 +28,16 @@ People may not be familiar with MRZ, but most likely they have a passport that c
 
 For complete details and instructions on using the model, please refer to [**MRZScanner Documents**](https://docsaid.org/en/docs/mrzscanner/).
 
+## Model Testing
+
+We provide a web-based model testing tool for preliminary model evaluation.
+
+- [**MRZScanner Web Demo**](https://docsaid.org/en/playground/mrzscanner-demo/)
+
+If you have custom requirements, please feel free to contact us:
+
+- **docsaidlab@gmail.com**
+
 ## Installation
 
 ### Install via PyPI
