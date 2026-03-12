@@ -214,7 +214,7 @@ result = model(img, do_postprocess=True)
   - **cuda**：使用 GPU 進行運算（需要適當的硬體支援）。
 
   ```python
-  from capybara import Backend
+  from capybara.runtime import Backend
 
   model = MRZScanner(backend=Backend.cuda) # 使用 CUDA 後端
   #

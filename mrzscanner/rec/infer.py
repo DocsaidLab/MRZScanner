@@ -1,62 +1,62 @@
+from pathlib import Path
 from typing import Any, Callable, List, Tuple
 
 import capybara as cb
 import numpy as np
+from capybara.onnxengine import ONNXEngine
+from capybara.runtime import Backend
+from capybara.utils import download_from_google
 
 from ..utils import DecodeMode, TextDecoder
 
 DIR = cb.get_curdir(__file__)
 
-__all__ = ['Inference']
+__all__ = ["Inference"]
 
 
 class Inference:
-
     configs = {
-        '20250221': {
-            'model_path': 'mrz_recognition_20250221_fp32.onnx',
-            'file_id': '16t-kYHoBnI72MWDMCQ0K8GEyb90Tx2Rp',
-            'img_size_infer': (64, 640),
+        "20250221": {
+            "model_path": "mrz_recognition_20250221_fp32.onnx",
+            "file_id": "16t-kYHoBnI72MWDMCQ0K8GEyb90Tx2Rp",
+            "img_size_infer": (64, 640),
         },
     }
 
     def __init__(
         self,
         gpu_id: int = 0,
-        backend: cb.Backend = cb.Backend.cpu,
-        model_cfg: str = '20250221',
-        delimeter: str = '<SEP>',
-        **kwargs
+        backend: Backend = Backend.cpu,
+        model_cfg: str = "20250221",
+        delimeter: str = "<SEP>",
+        **kwargs,
     ):
-        self.root = DIR / 'ckpt'
+        self.root = DIR / "ckpt"
         self.model_cfg = model_cfg
         self.cfg = cfg = self.configs[model_cfg]
-        self.image_size = cfg['img_size_infer']
+        self.image_size = cfg["img_size_infer"]
         self.delimeter = delimeter
-        model_path = self.root / cfg['model_path']
-        if not cb.Path(model_path).exists():
-            cb.download_from_google(
-                cfg['file_id'], model_path.name, str(DIR / 'ckpt'))
+        model_path = self.root / cfg["model_path"]
+        if not Path(model_path).exists():
+            download_from_google(cfg["file_id"], model_path.name, str(DIR / "ckpt"))
 
-        self.model = cb.ONNXEngine(model_path, gpu_id, backend, **kwargs)
-        self.input_key = list(self.model.input_infos.keys())[0]
-        self.output_key = list(self.model.output_infos.keys())[0]
+        self.model = ONNXEngine(model_path, gpu_id, backend, **kwargs)
+        info = self.model.summary()
+        self.input_key = info["inputs"][0]["name"]
+        self.output_key = info["outputs"][0]["name"]
 
-        keys = ["<PAD>", "<EOS>", delimeter] + \
-            list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<")
-        chars_dict = {
-            k: i
-            for i, k in enumerate(keys)
-        }
+        keys = ["<PAD>", "<EOS>", delimeter] + list(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<"
+        )
+        chars_dict = {k: i for i, k in enumerate(keys)}
 
         self.text_dec = TextDecoder(
-            chars_dict=chars_dict,
-            decode_mode=DecodeMode.Normal
+            chars_dict=chars_dict, decode_mode=DecodeMode.Normal
         )
 
     def preprocess(self, img: np.ndarray, normalize: bool = False):
         tensor = cb.imresize(img, size=tuple(self.image_size))
-        tensor = np.transpose(tensor, axes=(2, 0, 1)).astype('float32')
+        tensor = np.transpose(tensor, axes=(2, 0, 1)).astype("float32")
         tensor = tensor[None] / 255.0 if normalize else tensor[None]
         return {self.input_key: tensor}
 

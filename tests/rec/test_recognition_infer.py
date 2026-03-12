@@ -4,6 +4,7 @@ import capybara as cb
 import numpy as np
 import pytest
 
+import mrzscanner.rec.infer as rec_infer
 from mrzscanner.rec.infer import Inference
 
 
@@ -12,8 +13,12 @@ class DummyONNXEngine:
         self.model_path = model_path
         self.gpu_id = gpu_id
         self.backend = backend
-        self.input_infos = {"input": "dummy"}
-        self.output_infos = {"output": "dummy"}
+
+    def summary(self):
+        return {
+            "inputs": [{"name": "input", "dtype": "", "shape": []}],
+            "outputs": [{"name": "output", "dtype": "", "shape": []}],
+        }
 
     def __call__(self, **kwargs):
         # 傳回一個 dummy 預測結果，其 shape 為 (1, 序列長度, 類別數)
@@ -32,6 +37,7 @@ def dummy_download(file_id, file_name, target_dir):
     # 紀錄下載呼叫，不做實際動作
     pass
 
+
 # Dummy Path 物件
 
 
@@ -43,20 +49,22 @@ class DummyPath:
     def exists(self):
         return self.exists_flag
 
+
 # --- 測試案例 ---
 
 # 測試 __init__ 當模型檔案存在時不會呼叫下載
 
 
 def test_init_no_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=True))
     download_called = {"called": False}
 
     def dummy_download_google(file_id, file_name, target_dir):
         download_called["called"] = True
-    monkeypatch.setattr(cb, "download_from_google", dummy_download_google)
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+
+    monkeypatch.setattr(rec_infer, "download_from_google", dummy_download_google)
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()
@@ -68,30 +76,33 @@ def test_init_no_download(tmp_path, monkeypatch):
     # 驗證 text_dec 已正確建立
     assert hasattr(inf, "text_dec")
 
+
 # 測試 __init__ 當模型檔案不存在時會呼叫下載
 
 
 def test_init_with_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=False))
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=False))
     download_called = {"called": False}
 
     def dummy_download_google(file_id, file_name, target_dir):
         download_called["called"] = True
-    monkeypatch.setattr(cb, "download_from_google", dummy_download_google)
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+
+    monkeypatch.setattr(rec_infer, "download_from_google", dummy_download_google)
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     Inference()
     assert download_called["called"]
 
+
 # 測試 preprocess 方法 (啟用 normalization)
 
 
 def test_preprocess_normalize(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()
@@ -104,13 +115,14 @@ def test_preprocess_normalize(tmp_path, monkeypatch):
     # normalization 應該將數值壓縮至 [0, 1]
     assert tensor.max() <= 1.0
 
+
 # 測試 preprocess 方法 (未啟用 normalization)
 
 
 def test_preprocess_no_normalize(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()
@@ -121,13 +133,14 @@ def test_preprocess_no_normalize(tmp_path, monkeypatch):
     # 未 normalization 時，tensor 中應有值大於 1
     assert tensor.max() > 1.0
 
+
 # 測試 postprocess 方法
 
 
 def test_postprocess(monkeypatch, tmp_path):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngine)
 
     inf = Inference()
     # 覆寫 text_dec，使其回傳固定字串
@@ -138,22 +151,29 @@ def test_postprocess(monkeypatch, tmp_path):
     result = inf.postprocess(dummy_pred)
     assert result == "ABC<SEP>DEF"
 
+
 # 測試 __call__ 方法，檢查整個流程
 
 
 def test_call(monkeypatch, tmp_path):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(rec_infer, "DIR", tmp_path)
+    monkeypatch.setattr(rec_infer, "Path", lambda p: DummyPath(p, exists_flag=True))
     # 使用一個自訂的 Dummy ONNXEngine
 
     class DummyONNXEngineCall:
         def __init__(self, model_path, gpu_id, backend, **kwargs):
-            self.input_infos = {"input": "dummy"}
-            self.output_infos = {"output": "dummy"}
+            pass
+
+        def summary(self):
+            return {
+                "inputs": [{"name": "input", "dtype": "", "shape": []}],
+                "outputs": [{"name": "output", "dtype": "", "shape": []}],
+            }
 
         def __call__(self, **kwargs):
             return {"output": np.zeros((1, 5, 10), dtype=np.float32)}
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngineCall)
+
+    monkeypatch.setattr(rec_infer, "ONNXEngine", DummyONNXEngineCall)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()

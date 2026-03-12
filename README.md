@@ -214,7 +214,7 @@ Here are the advanced configuration options during initialization:
   - **cuda**: Use GPU for computation (requires appropriate hardware support).
 
   ```python
-  from capybara import Backend
+  from capybara.runtime import Backend
 
   model = MRZScanner(backend=Backend.cuda) # Use CUDA backend
   #

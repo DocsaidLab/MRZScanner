@@ -1,6 +1,6 @@
-import capybara as cb
 import numpy as np
 import pytest
+from capybara.runtime import Backend
 
 from mrzscanner.det.infer import Inference
 
@@ -9,12 +9,12 @@ from mrzscanner.det.infer import Inference
 def fake_inference():
     # 建立 Inference 物件，方便後續測試使用
     # 這邊的 GPU ID 與 backend 可根據環境需求自行調整
-    return Inference(gpu_id=0, backend=cb.Backend.cpu, model_cfg='20250222')
+    return Inference(gpu_id=0, backend=Backend.cpu, model_cfg="20250222")
 
 
 def test_inference_init(fake_inference):
     # 測試初始化參數是否正確
-    assert fake_inference.model_cfg == '20250222'
+    assert fake_inference.model_cfg == "20250222"
     assert fake_inference.image_size == (256, 256)
     assert fake_inference.input_key is not None
     assert fake_inference.output_key is not None
@@ -89,8 +89,7 @@ def test_postprocess_single_polygon(fake_inference):
 def test_call_with_mock(fake_inference, monkeypatch):
     # 假設不想依賴真實模型推理結果，我們可以 mock 其輸出
     mock_output = {
-        fake_inference.output_key: np.random.rand(
-            1, 256, 256).astype(np.float32)
+        fake_inference.output_key: np.random.rand(1, 256, 256).astype(np.float32)
     }
 
     def mock_model_call(*args, **kwargs):
