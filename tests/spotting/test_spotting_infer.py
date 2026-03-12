@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pytest
 
+import mrzscanner.spotting.infer as spotting_infer
 from mrzscanner.spotting.infer import Inference
 
 
@@ -14,8 +15,12 @@ class DummyONNXEngine:
         self.model_path = model_path
         self.gpu_id = gpu_id
         self.backend = backend
-        self.input_infos = {"input": "dummy"}
-        self.output_infos = {"output": "dummy"}
+
+    def summary(self):
+        return {
+            "inputs": [{"name": "input", "dtype": "", "shape": []}],
+            "outputs": [{"name": "output", "dtype": "", "shape": []}],
+        }
 
     def __call__(self, **kwargs):
         # Return a dummy output array with shape (1, 10, 20)
@@ -43,18 +48,22 @@ class DummyPath:
     def __truediv__(self, other):
         return f"{self.path}/{other}"
 
+
 # --- Tests ---
 
 
 def test_init_no_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(spotting_infer, "DIR", tmp_path)
+    monkeypatch.setattr(
+        spotting_infer, "Path", lambda p: DummyPath(p, exists_flag=True)
+    )
     download_called = {"called": False}
 
     def dummy_download_google(file_id, file_name, target_dir):
         download_called["called"] = True
-    monkeypatch.setattr(cb, "download_from_google", dummy_download_google)
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+
+    monkeypatch.setattr(spotting_infer, "download_from_google", dummy_download_google)
+    monkeypatch.setattr(spotting_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()
@@ -66,14 +75,17 @@ def test_init_no_download(tmp_path, monkeypatch):
 
 
 def test_init_with_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=False))
+    monkeypatch.setattr(spotting_infer, "DIR", tmp_path)
+    monkeypatch.setattr(
+        spotting_infer, "Path", lambda p: DummyPath(p, exists_flag=False)
+    )
     download_called = {"called": False}
 
     def dummy_download_google(file_id, file_name, target_dir):
         download_called["called"] = True
-    monkeypatch.setattr(cb, "download_from_google", dummy_download_google)
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+
+    monkeypatch.setattr(spotting_infer, "download_from_google", dummy_download_google)
+    monkeypatch.setattr(spotting_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     Inference()
@@ -82,9 +94,11 @@ def test_init_with_download(tmp_path, monkeypatch):
 
 def test_preprocess_padding_horizontal(tmp_path, monkeypatch):
     # Test when image height < width (H < W)
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+    monkeypatch.setattr(spotting_infer, "DIR", tmp_path)
+    monkeypatch.setattr(
+        spotting_infer, "Path", lambda p: DummyPath(p, exists_flag=True)
+    )
+    monkeypatch.setattr(spotting_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     record = {}
@@ -95,6 +109,7 @@ def test_preprocess_padding_horizontal(tmp_path, monkeypatch):
         record["left"] = left
         record["right"] = right
         return img
+
     monkeypatch.setattr(cv2, "copyMakeBorder", dummy_copyMakeBorder)
 
     inf = Inference()
@@ -114,9 +129,11 @@ def test_preprocess_padding_horizontal(tmp_path, monkeypatch):
 
 def test_preprocess_padding_vertical(tmp_path, monkeypatch):
     # Test when image height >= width (H >= W)
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngine)
+    monkeypatch.setattr(spotting_infer, "DIR", tmp_path)
+    monkeypatch.setattr(
+        spotting_infer, "Path", lambda p: DummyPath(p, exists_flag=True)
+    )
+    monkeypatch.setattr(spotting_infer, "ONNXEngine", DummyONNXEngine)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     record = {}
@@ -127,6 +144,7 @@ def test_preprocess_padding_vertical(tmp_path, monkeypatch):
         record["left"] = left
         record["right"] = right
         return img
+
     monkeypatch.setattr(cv2, "copyMakeBorder", dummy_copyMakeBorder)
 
     inf = Inference()
@@ -145,19 +163,26 @@ def test_preprocess_padding_vertical(tmp_path, monkeypatch):
 
 
 def test_call(tmp_path, monkeypatch):
-    monkeypatch.setattr(cb, "get_curdir", lambda _: tmp_path)
-    monkeypatch.setattr(cb, "Path", lambda p: DummyPath(p, exists_flag=True))
+    monkeypatch.setattr(spotting_infer, "DIR", tmp_path)
+    monkeypatch.setattr(
+        spotting_infer, "Path", lambda p: DummyPath(p, exists_flag=True)
+    )
 
     class DummyONNXEngineCall:
         def __init__(self, model_path, gpu_id, backend, **kwargs):
-            self.input_infos = {"input": "dummy"}
-            self.output_infos = {"output": "dummy"}
+            pass
+
+        def summary(self):
+            return {
+                "inputs": [{"name": "input", "dtype": "", "shape": []}],
+                "outputs": [{"name": "output", "dtype": "", "shape": []}],
+            }
 
         def __call__(self, **kwargs):
             # Return a dummy output array.
             return {"output": np.zeros((1, 10, 20), dtype=np.float32)}
 
-    monkeypatch.setattr(cb, "ONNXEngine", DummyONNXEngineCall)
+    monkeypatch.setattr(spotting_infer, "ONNXEngine", DummyONNXEngineCall)
     monkeypatch.setattr(cb, "imresize", dummy_imresize)
 
     inf = Inference()
