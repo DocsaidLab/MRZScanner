@@ -18,8 +18,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "capybara_docsaid[onnxruntime]>=1.0.0,<2.0.0",
+    "capybara_docsaid>=1.0.0,<2.0.0",
 ]
+
+[project.optional-dependencies]
+cpu = ["capybara_docsaid[onnxruntime]>=1.0.0,<2.0.0"]
+gpu = ["capybara_docsaid[onnxruntime-gpu]>=1.0.0,<2.0.0"]
 
 [project.urls]
 Repository = "https://github.com/DocsaidLab/MRZScanner.git"
